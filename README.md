@@ -17,10 +17,9 @@ Vercel이 웹 화면과 정산 API를 운영합니다. Windows가 꺼져 있을 
 | `GOOGLE_SPREADSHEET_ID` | RLCM 시트 URL의 `/d/`와 `/edit` 사이 ID |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | 시트 편집 권한이 있는 서비스 계정 JSON 전체. 또는 `GOOGLE_CLIENT_EMAIL`과 `GOOGLE_PRIVATE_KEY` 설정 |
 | `DATABASE_URL` | PostgreSQL 풀링 연결 주소 |
-| `CRL_ADMIN_PASSWORD` | 웹 운영자 비밀번호 |
 | `CRL_WORKER_TOKEN` | Windows 봇과 Vercel이 공유하는 토큰 |
 
-운영자 비밀번호와 봇 토큰은 아래 명령을 각각 실행해 서로 다른 값으로 만듭니다. 웹은 로그인 창에서 사용자 이름 `admin`과 운영자 비밀번호를 사용합니다.
+웹 운영 화면과 API는 로그인 없이 공개됩니다. 공개 운영 화면을 사용하려면 Vercel Production Deployment Protection도 꺼야 합니다. 봇 토큰은 Windows 봇의 내부 API 요청에만 사용합니다.
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
@@ -40,7 +39,7 @@ notepad .env.worker
 npm.cmd run worker
 ```
 
-`.env.worker`에는 `CRL_PUBLIC_URL`(예: `https://my-project.vercel.app`), Vercel과 동일한 `CRL_WORKER_TOKEN`, `BAND_PAGE_URL`을 넣습니다. 처음 뜬 Edge 창에서 BAND에 로그인합니다. Windows 콘솔에서 **BAND 대댓글 감시를 시작했습니다**가 표시되면 다음 분에 테스트 댓글을 작성합니다. Vercel 배포 보호를 사용한다면 Windows 봇이 Production의 `/api/crl/internal/*`에 접근할 수 있어야 합니다. 해당 경로는 CRL2의 봇 토큰으로 인증합니다.
+`.env.worker`에는 `CRL_PUBLIC_URL`(예: `https://my-project.vercel.app`), Vercel과 동일한 `CRL_WORKER_TOKEN`, `BAND_PAGE_URL`을 넣습니다. 처음 뜬 Edge 창에서 BAND에 로그인합니다. Windows 콘솔에서 **BAND 대댓글 감시를 시작했습니다**가 표시되면 다음 분에 테스트 댓글을 작성합니다. 내부 `/api/crl/internal/*` 경로는 CRL2의 봇 토큰으로 인증합니다.
 
 `.env.worker`, 서비스 계정 JSON과 브라우저 프로필은 Git 저장소 밖에서 관리합니다. Windows 봇은 Sheets 자격 증명 없이 Vercel API로 명령을 보냅니다.
 

@@ -35,37 +35,22 @@ async function request(app, url, { method = 'GET', headers = {}, body } = {}) {
 }
 
 const env = {
-  CRL_ADMIN_PASSWORD: 'test-admin-pass',
   CRL_WORKER_TOKEN: 'test-worker-token',
   GOOGLE_SPREADSHEET_ID: 'test-spreadsheet'
 };
 
-async function signIn(app) {
-  const authorization = `Basic ${Buffer.from('admin:test-admin-pass').toString('base64')}`;
-  return request(app, '/api/crl/sign-in?next=%2Fdashboard.html', { headers: { authorization } });
-}
-
-test('hosted admin APIs require a signed cookie and reject cross-origin changes', async () => {
+test('hosted operator APIs are public without a login', async () => {
   const app = createHostedApi({ env });
-  assert.equal((await request(app, '/api/players')).status, 401);
-  assert.equal((await request(app, '/api/crl/sign-in')).status, 401);
-  const login = await signIn(app);
-  assert.equal(login.status, 303);
-  assert.equal(login.headers.location, '/dashboard.html');
-  const [cookieHeader] = [].concat(login.headers['set-cookie']);
-  assert.match(cookieHeader, /HttpOnly; Secure; SameSite=Strict/);
-  const cookie = cookieHeader.split(';')[0];
-  assert.equal((await request(app, '/api/crl/status', { headers: { cookie: `${cookie}0` } })).status, 401);
-  const status = await request(app, '/api/crl/status', { headers: { cookie } });
+  assert.equal((await request(app, '/api/crl/sign-in')).status, 404);
+  const status = await request(app, '/api/crl/status');
   assert.equal(status.status, 200);
   assert.match(status.data, /"mode":"hosted"/);
-  const update = await request(app, '/api/crl/bindings', { method: 'POST', body: { playerId: 1 },
-    headers: { cookie, origin: 'https://other.example' } });
-  assert.equal(update.status, 403);
-  assert.equal((await request(app, '/api/debug/env', { headers: { cookie } })).status, 404);
+  const publicStatus = await request(app, '/api/crl/status', { headers: { origin: 'https://other.example' } });
+  assert.equal(publicStatus.status, 200);
+  assert.equal((await request(app, '/api/debug/env')).status, 404);
 });
 
-test('worker token reaches settlement with no Windows service and cannot act as the operator', async () => {
+test('worker token protects internal routes and reaches settlement', async () => {
   const calls = [];
   const sheets = { spreadsheets: { async get() {
     calls.push('sheets');
@@ -79,8 +64,8 @@ test('worker token reaches settlement with no Windows service and cannot act as 
     return body;
   } });
   const headers = { authorization: 'Bearer test-worker-token' };
+  assert.equal((await request(app, '/api/crl/internal/ping')).status, 403);
   assert.equal((await request(app, '/api/crl/internal/ping', { headers })).status, 200);
-  assert.equal((await request(app, '/api/players', { headers })).status, 401);
   assert.equal((await request(app, '/api/crl/internal/command', { method: 'POST' })).status, 403);
   const result = await request(app, '/api/crl/internal/command', { method: 'POST', headers,
     body: { key: 'a'.repeat(64), author: '참가자', command: { action: 'verify' } } });
@@ -97,11 +82,8 @@ test('an RLCM response waits for the hosted lock transaction to finish', async (
     handlerDone.resolve();
     await releaseLock.promise;
   } });
-  const login = await signIn(app);
-  const [cookieHeader] = [].concat(login.headers['set-cookie']);
-  const cookie = cookieHeader.split(';')[0];
   let sent = false;
-  const response = request(app, '/api/', { headers: { cookie } }).then(result => {
+  const response = request(app, '/api/').then(result => {
     sent = true;
     return result;
   });
@@ -164,11 +146,8 @@ test('the hosted API starts and settles PvP card games from persisted Sheets sta
     }
   } };
   const app = createHostedApi({ env, sheets, lock: (_id, operation) => operation() });
-  const login = await signIn(app);
-  const [cookieHeader] = [].concat(login.headers['set-cookie']);
-  const headers = { cookie: cookieHeader.split(';')[0] };
   async function post(url, body) {
-    const response = await request(app, url, { method: 'POST', headers, body });
+    const response = await request(app, url, { method: 'POST', body });
     assert.equal(response.status, 200, response.data);
     return JSON.parse(response.data.split('\r\n\r\n')[1]);
   }
