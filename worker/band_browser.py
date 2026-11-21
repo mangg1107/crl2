@@ -34,7 +34,10 @@ REPLY_EXPAND = re.compile(r"^답글\s*(?:[\d,]+\s*개\s*)?(?:모두\s*)?보기$"
 
 THREAD_LOOKUP = """
     const commentSelector = '[data-viewname="DCommentView"]';
-    const isReply = el => !!el.parentElement?.closest(commentSelector + ', ._replyRegion');
+    // 실제 BAND는 답글을 .sReplyList 아래에 렌더링한다. 구버전 화면의
+    // ._replyRegion도 함께 인식하고, 루트 댓글의 하위 댓글도 놓치지 않는다.
+    const isReply = el => !!el.closest('._replyRegion, .sReplyList') ||
+        !!el.parentElement?.closest(commentSelector);
     const visible = el => el.getClientRects().length &&
         !['hidden', 'collapse'].includes(getComputedStyle(el).visibility);
     const threadRoot = element => {
@@ -98,10 +101,16 @@ ROW_TEXT = "row => {\n    const readTime = " + ROW_TIME + ";\n" + THREAD_LOOKUP 
 }"""
 
 EXPANDER_ROOT = "(el) => {" + THREAD_LOOKUP + """
-    const region = el.closest('._replyRegion');
+    const region = el.closest('._replyRegion, .sReplyList');
     const root = region ? threadRoot(region) : null;
     return root ? (""" + ROW_TEXT + """)(root) : null;
 }"""
+
+ROW_CAPTURE = f"""rows => {{
+    const times = rows.map({ROW_TIME});
+    const snapshot = rows.map(({ROW_TEXT}));
+    return {{times, snapshot}};
+}}"""
 
 ROW_SNAPSHOT = f"""(rows, {{times, indexes, expected, tokens}}) => {{
     const currentTimes = rows.map({ROW_TIME});
@@ -279,9 +288,16 @@ class BandBrowser:
             stage = "사진 댓글 화면과 입력창 대기"
             self.ready()
             self.expand_managed_threads()
-            stage = "화면 댓글 작성 시각 읽기"
+            stage = "화면 댓글 목록 읽기"
             rows = self.scope.locator(PHOTO_LIST).locator(VISIBLE_ROW)
-            times = rows.evaluate_all(f"rows => rows.map({ROW_TIME})")
+            # 시간 목록과 댓글 내용을 한 번의 브라우저 평가에서 읽는다.
+            # BAND가 목록을 다시 그리는 사이 두 번 읽으면 서로 다른 목록으로
+            # 인식되어 매 주기마다 안전 검사에 걸리는 경우가 있다.
+            captured = rows.evaluate_all(ROW_CAPTURE)
+            times = captured["times"]
+            all_snapshot = captured["snapshot"]
+            if len(all_snapshot) != len(times):
+                raise BandError("댓글 목록을 한 번에 읽지 못했습니다. 다음 조회에서 다시 시도합니다.")
             indexes = []
             invalid_times = 0
             for index, timestamp in enumerate(times):
@@ -293,11 +309,8 @@ class BandBrowser:
                 if self.ignore_comments_through is None or created > self.ignore_comments_through:
                     indexes.append(index)
 
-            stage = "새 댓글 내용 읽기"
+            snapshot = [all_snapshot[index] for index in indexes]
             options = {"times": times, "indexes": indexes}
-            snapshot = rows.evaluate_all(ROW_SNAPSHOT, options)
-            if snapshot is None:
-                raise BandError("댓글 목록이 변경되어 다시 읽습니다.")
             comments = []
             unreadable = []
             candidates = []

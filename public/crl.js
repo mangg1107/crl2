@@ -70,7 +70,7 @@ function showBindings(bindings) {
   const rows = bindings.map(binding => {
     const activeGame = binding.activeGame === 'baccarat' ? '바카라' : '블랙잭';
     const row = tableRow([binding.bandName, names.get(binding.playerId) || `#${binding.playerId}`,
-      binding.playing ? `${activeGame} 진행 중` : binding.verified ? '확인 완료' : '확인 대기']);
+      binding.playing ? `${activeGame} 진행 중` : '게임 준비됨']);
     row.cells[2].toggleAttribute('data-playing', binding.playing);
     const button = document.createElement('button');
     button.type = 'button';

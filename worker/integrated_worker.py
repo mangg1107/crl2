@@ -237,13 +237,19 @@ def send_reply(browser, target, body):
     LOG.warning("비밀 답글이 화면에서 확인되지 않았습니다. 참가자는 상태 명령으로 게임을 다시 확인할 수 있습니다.")
 
 
-def process_targets(browser, targets, path, state, stopped):
+def process_targets(browser, targets, path, state, stopped, diagnostics):
     for target in targets:
         if stopped.is_set():
             return
         key, slot = target["comment_key"], target["slot_key"]
-        if (not target["is_reply"] or target["is_self"] or target["ambiguous"]
-                or key in browser.processed or slot in browser.processed or is_bot_message(target["content"])):
+        if not target["is_reply"] or target["is_self"]:
+            continue
+        if target["ambiguous"]:
+            if (key, "ambiguous") not in diagnostics:
+                LOG.warning("새 대댓글을 감지했지만 작성자·시각이 겹쳐 안전 확인을 보류했습니다.")
+                diagnostics.add((key, "ambiguous"))
+            continue
+        if key in browser.processed or slot in browser.processed or is_bot_message(target["content"]):
             continue
         try:
             command = parse_thread_command(target, allow_short=target["created_at"] > state["short_cutoff"])
@@ -253,12 +259,21 @@ def process_targets(browser, targets, path, state, stopped):
             keys = (key,)
         else:
             if command is None:
+                if (key, "unrecognized") not in diagnostics:
+                    topic = thread_topic(target.get("thread_root")) or "unrecognized"
+                    called = bet_command_text(target["content"], is_reply=True) is not None
+                    LOG.warning("새 대댓글을 감지했지만 명령을 해석하지 못했습니다 (종목=%s, 봇 호출=%s).",
+                                topic, "yes" if called else "no")
+                    diagnostics.add((key, "unrecognized"))
                 continue
             if command.get("action") == "convert" and target["created_at"] <= state["conversion_cutoff"]:
                 continue
         try:
             browser.target_row(target)
-        except BandError:
+        except BandError as error:
+            if (key, "target") not in diagnostics:
+                LOG.warning("명령은 읽었지만 원댓글을 다시 확인하지 못했습니다 (%s).", error)
+                diagnostics.add((key, "target"))
             continue
         if command is not None:
             try:
@@ -304,32 +319,69 @@ def main():
             raise ValueError("이미 실행 중인 CRL2 봇이 있습니다.") from None
         state = load_state(path)
         with sync_playwright() as playwright:
-            context = playwright.chromium.launch_persistent_context(
-                str(ROOT / "browser_profile"), channel=channel, headless=False, locale="ko-KR",
-            )
+            context = None
             try:
-                browser = BandBrowser(context.pages[0] if context.pages else context.new_page(), url)
-                browser.processed = set(state["processed"])
-                browser.ignore_comments_through = state["cutoff"]
                 ready = False
                 last_error = None
+                last_scan_summary = None
+                diagnostics = set()
                 while not stopped.is_set():
+                    if context is None:
+                        try:
+                            context = playwright.chromium.launch_persistent_context(
+                                str(ROOT / "browser_profile"), channel=channel,
+                                headless=False, locale="ko-KR",
+                            )
+                            browser = BandBrowser(
+                                context.pages[0] if context.pages else context.new_page(), url,
+                            )
+                            browser.processed = set(state["processed"])
+                            browser.ignore_comments_through = state["cutoff"]
+                            ready = False
+                            last_scan_summary = None
+                            diagnostics.clear()
+                        except PlaywrightError as error:
+                            LOG.warning("BAND 브라우저를 열지 못했습니다 (%s). 다시 시도합니다.",
+                                        type(error).__name__)
+                            stopped.wait(poll)
+                            continue
                     try:
                         targets = browser.fetch_comments()
-                    except BandError as error:
+                    except (BandError, ValueError, PlaywrightError) as error:
                         if str(error) != last_error:
                             LOG.warning("BAND 사진 조회 대기 (%s)", error)
                         last_error = str(error)
+                        # 브라우저 창을 닫았거나 Edge가 종료되면 컨텍스트를 다시 띄운다.
+                        if ("BAND 브라우저가 닫혔습니다" in str(error)
+                                or "TargetClosedError" in str(error)):
+                            try:
+                                context.close()
+                            except PlaywrightError:
+                                pass
+                            context = None
+                            last_error = None
                     else:
                         last_error = None
+                        summary = (
+                            len(targets),
+                            sum(1 for target in targets if target["is_reply"]),
+                            sum(1 for target in targets
+                                if target["is_reply"] and not target["is_self"]),
+                            sum(1 for target in targets if target.get("ambiguous")),
+                        )
+                        if summary != last_scan_summary:
+                            LOG.info("BAND 댓글 목록 확인 (전체=%d, 대댓글=%d, 처리 후보=%d, 모호=%d)",
+                                     *summary)
+                        last_scan_summary = summary
                         if not ready:
                             print("CRL_READY", file=sys.stderr, flush=True)
                             LOG.info("BAND 대댓글 감시를 시작했습니다.")
                             ready = True
-                        process_targets(browser, targets, path, state, stopped)
+                        process_targets(browser, targets, path, state, stopped, diagnostics)
                     stopped.wait(poll)
             finally:
-                context.close()
+                if context is not None:
+                    context.close()
 
 
 if __name__ == "__main__":
