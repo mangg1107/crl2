@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "outputDirectory": "public",
+  "framework": "express",
   "env": { "NODEJS_HELPERS": "0" },
   "redirects": [
     { "source": "/dashboard", "destination": "/dashboard.html", "permanent": false },
@@ -9,7 +8,6 @@
     { "source": "/exchange", "destination": "/exchange.html", "permanent": false }
   ],
   "functions": {
-    "api/*.js": { "maxDuration": 60 },
-    "api/crl/internal/*.js": { "maxDuration": 60 }
+    "index.js": { "maxDuration": 60 }
   }
 }

@@ -8,7 +8,7 @@ Vercel이 웹 화면과 정산 API를 운영합니다. Windows가 꺼져 있을 
 
 ### Vercel 설정
 
-1. GitHub 저장소를 Vercel에 연결합니다. 저장소 안에 `crl2`가 들어 있다면 **Root Directory**를 `crl2`로 지정합니다. `crl2` 자체를 저장소로 올렸다면 기본 디렉터리를 사용합니다. Framework Preset은 **Other**를 선택합니다.
+1. GitHub 저장소를 Vercel에 연결합니다. 저장소 안에 `crl2`가 들어 있다면 **Root Directory**를 `crl2`로 지정합니다. `crl2` 자체를 저장소로 올렸다면 기본 디렉터리를 사용하고, Framework Preset은 **Express**를 선택합니다.
 2. Vercel 프로젝트에 PostgreSQL을 연결합니다. [Vercel Marketplace의 Postgres 연동](https://vercel.com/docs/postgres)을 사용할 수 있습니다. 데이터베이스의 풀링 연결 주소를 `DATABASE_URL`에 설정합니다. 테이블 생성이나 데이터 복사는 필요 없습니다.
 3. **Settings → Environment Variables**에서 Production에 아래 값을 설정하고 배포합니다. [Vercel 환경변수 문서](https://vercel.com/docs/environment-variables)
 
