@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "env": { "NODEJS_HELPERS": "0" },
+  "redirects": [
+    { "source": "/dashboard", "destination": "/dashboard.html", "permanent": false },
+    { "source": "/game", "destination": "/game.html", "permanent": false },
+    { "source": "/exchange", "destination": "/exchange.html", "permanent": false }
+  ],
+  "functions": {
+    "api/*.js": { "maxDuration": 60 }
+  }
+}

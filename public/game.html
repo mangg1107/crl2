@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRL2 · 웹 게임</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/access.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <nav aria-label="주 메뉴" class="frame site-nav">
+      <a href="/" class="site-brand">CRL2</a>
+      <div class="nav-links">
+        <a href="/">BAND 운영</a>
+        <a href="/dashboard.html">대시보드</a>
+        <a href="/game.html" aria-current="page">웹 게임</a>
+        <a href="/exchange.html">환전</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="frame workspace">
+  <h1>웹 게임</h1>
+
+  <div class="section">
+    <div id="playerField" class="form-row">
+      <label>Player</label>
+      <select id="playerId" onchange="updateBalanceHint()"></select>
+    </div>
+
+    <div class="form-row">
+      <label>Game type</label>
+      <select id="gameType" onchange="updateGameFields()">
+        <option value="roulette">Roulette</option>
+        <option value="highlow">High Low</option>
+        <option value="baccarat">Baccarat</option>
+        <option value="blackjack">Blackjack</option>
+        <option value="redblack">Red Black</option>
+        <option value="russianroulette">PVP Russian Roulette</option>
+        <option value="pvpbaccarat">PVP Baccarat</option>
+        <option value="pvpblackjack">PVP Blackjack</option>
+        <option value="formulahighlow">PVP Combination Betting</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>Chip color</label>
+      <select id="color" onchange="updateBalanceHint(); updateRussianRoulettePlayers(); updatePvpPlayers(); updateFormulaHighLowPlayers();">
+        <option value="red">Red</option>
+        <option value="blue">Blue</option>
+        <option value="green">Green</option>
+        <option value="yellow">Yellow</option>
+        <option value="white">White</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>Bet amount</label>
+      <input id="amount" type="number" min="0" value="1" oninput="updateBalanceHint()" />
+    </div>
+    <div class="hint" id="balanceHint"></div>
+
+    <div id="rouletteFields">
+      <div class="form-row">
+        <label>Roulette bet type</label>
+        <select id="rouletteBetType" onchange="updateRouletteDetailInput()">
+          <option value="number">Number (1~4개)</option>
+          <option value="dozen">Dozen (2.2:1)</option>
+          <option value="column">Column (2.2:1)</option>
+          <option value="red">Red (1.2:1)</option>
+          <option value="black">Black (1.2:1)</option>
+          <option value="even">Even (1.2:1)</option>
+          <option value="odd">Odd (1.2:1)</option>
+          <option value="low">1-18 (1.2:1)</option>
+          <option value="high">19-36 (1.2:1)</option>
+        </select>
+      </div>
+
+      <div class="form-row" id="rouletteDetailTextWrap">
+        <label id="rouletteDetailLabel">Roulette detail</label>
+        <input id="rouletteDetail" type="text" placeholder="예: 1, 5, 8, 10" />
+      </div>
+
+      <div class="form-row" id="rouletteDetailSelectWrap" style="display:none;">
+        <label id="rouletteDetailSelectLabel">Roulette detail</label>
+        <select id="rouletteDetailSelect"></select>
+      </div>
+
+      <div class="hint" id="rouletteDetailHint"></div>
+
+      <button type="button" onclick="playGame()">Spin roulette</button>
+    </div>
+
+    <div id="highLowFields" style="display:none;">
+      <div class="form-row">
+        <label>High Low choice</label>
+        <select id="highLowChoice">
+          <option value="HIGH">HIGH (8, 9, 10, J, Q, K)</option>
+          <option value="LOW">LOW (A, 2, 3, 4, 5, 6)</option>
+        </select>
+      </div>
+
+      <div class="hint">승리 1.2:1 / 7은 베팅금 반환</div>
+      <button type="button" onclick="playGame()">Draw high-low card</button>
+    </div>
+
+    <div id="baccaratFields" style="display:none;">
+      <div class="form-row">
+        <label>Baccarat side</label>
+        <select id="baccaratSide">
+          <option value="PLAYER">PLAYER (1.2:1)</option>
+          <option value="BANKER">BANKER (1:1)</option>
+          <option value="TIE">TIE (10:1)</option>
+        </select>
+      </div>
+
+      <div class="hint">첫 두 장이 한쪽이라도 8·9면 즉시 승부 · 양쪽이 0~7이면 히트 또는 스탠드</div>
+      <button type="button" onclick="startBaccarat()">Start baccarat</button>
+      <button id="baccaratHitButton" type="button" onclick="baccaratAction('hit')" disabled>Hit</button>
+      <button id="baccaratStandButton" type="button" onclick="baccaratAction('stand')" disabled>Stand</button>
+      <pre id="baccaratState">No baccarat in progress.</pre>
+    </div>
+
+    <div id="redBlackFields" style="display:none;">
+      <div class="form-row">
+        <label>Red Black choice</label>
+        <select id="redBlackChoice">
+          <option value="RED">RED</option>
+          <option value="BLACK">BLACK</option>
+        </select>
+      </div>
+
+      <div class="hint">승리 1.2:1</div>
+      <button type="button" onclick="playGame()">Draw red/black</button>
+    </div>
+
+    <div id="pvpFields" style="display:none;">
+      <div class="form-row">
+        <label>Participants</label>
+        <div id="pvpParticipantInputs"></div>
+      </div>
+      <div class="hint" id="pvpModeHint">Choose 2 players, start the round, then use the active player's action buttons.</div>
+      <div id="pvpTurnBanner" class="pvp-turn-banner">No PVP game in progress.</div>
+
+      <button id="pvpStartButton" type="button" onclick="startPvpGame()">Start PVP</button>
+      <div class="pvp-actions">
+        <button id="pvpHitButton" type="button" onclick="pvpAction('hit')" disabled>Hit</button>
+        <button id="pvpStandButton" type="button" onclick="pvpAction('stand')" disabled>Stand</button>
+      </div>
+      <pre id="pvpState">No PVP game resolved.</pre>
+      <div id="pvpResultCopies" class="pvp-result-copies" hidden></div>
+    </div>
+
+    <div id="russianRouletteFields" style="display:none;">
+      <div class="form-row">
+        <label>Player count</label>
+        <input id="russianParticipantCount" type="number" min="2" step="1" value="2" oninput="updateRussianRoulettePlayers()" />
+      </div>
+
+      <div class="form-row">
+        <label>Participants</label>
+        <div id="russianParticipantInputs"></div>
+      </div>
+      <div class="hint">Each selected player pays the bet into the pot. Each round eliminates 1 of the current n survivors. Last survivor wins the pot.</div>
+
+      <button type="button" onclick="startRussianRoulette()">Start Russian Roulette</button>
+      <button id="russianTriggerButton" type="button" onclick="pullRussianRouletteTrigger()" disabled>Play round</button>
+      <pre id="russianRouletteState">No Russian Roulette in progress.</pre>
+    </div>
+
+    <div id="formulaHighLowFields" style="display:none;">
+      <div class="form-row">
+        <label>Round number</label>
+        <input id="formulaRoundNumber" type="number" min="1" step="1" value="1" oninput="updateBalanceHint()" />
+      </div>
+
+      <div class="hint">Target number is randomly generated from 0 to 100 when Combination Betting starts.</div>
+
+      <div class="form-row">
+        <label>Participant count</label>
+        <input id="formulaParticipantCount" type="number" min="2" max="20" value="2" oninput="updateFormulaHighLowPlayers()" />
+      </div>
+
+      <div class="form-row">
+        <label>Participants</label>
+        <div id="formulaParticipantInputs"></div>
+      </div>
+
+      <div class="hint" id="formulaRequiredHint">Each player gets 6 random number cards from 0-10 and the operators +, -, ×(*), ÷(/), ^. Use all 6 numbers exactly once.</div>
+      <div id="formulaSubmissionInputs"></div>
+
+      <div class="hint">The closest result to the target wins the pot. Exact ties split the pot as evenly as possible.</div>
+
+      <button type="button" onclick="startFormulaHighLow()">Start Combination Betting</button>
+      <button id="formulaFinalButton" type="button" onclick="dealFormulaHighLowFinalCard()" disabled style="display:none;">Refresh state</button>
+      <button id="formulaResolveButton" type="button" onclick="resolveFormulaHighLow()" disabled>Resolve submitted formulas</button>
+      <pre id="formulaHighLowState">No Combination Betting in progress.</pre>
+    </div>
+
+    <div id="normalGameFields">
+      <div class="form-row">
+        <label>Multiplier</label>
+        <input id="multiplier" type="number" min="1" step="0.1" value="2" />
+      </div>
+
+      <div class="form-row">
+        <label>Pick / action</label>
+        <input id="extra1" type="text" />
+      </div>
+
+      <div class="form-row">
+        <label>Result / card</label>
+        <input id="extra2" type="text" />
+      </div>
+
+      <button type="button" onclick="playGame()">Resolve once</button>
+    </div>
+
+    <div id="blackjackControls" style="display:none;">
+      <div class="hint">판마다 52장 덱 사용 · 승리 1.2:1 · 무승부는 베팅금 반환</div>
+      <button type="button" onclick="startBlackjack()">Start blackjack</button>
+      <button id="hitButton" type="button" onclick="blackjackAction('hit')" disabled>Hit</button>
+      <button id="standButton" type="button" onclick="blackjackAction('stand')" disabled>Stand</button>
+      <pre id="blackjackState">No blackjack in progress.</pre>
+    </div>
+  </div>
+
+  <h2>Progress log</h2>
+  <div id="logList" class="log-list"></div>
+
+  </main>
+  <script>
+    let players = [];
+    let allLogs = [];
+    let activeBlackjackPlayerId = null;
+    let activeBaccaratPlayerId = null;
+    let activeRussianRouletteSessionId = null;
+    let activePvpSessionId = null;
+    let latestPvpState = null;
+    let activeFormulaHighLowSessionId = null;
+    const CHIP_LABELS = {
+      red: 'Red',
+      blue: 'Blue',
+      green: 'Green',
+      yellow: 'Yellow',
+      white: 'White'
+    };
+    const GAME_LIMIT_LABELS = {
+      roulette: 'Roulette',
+      highlow: 'High Low',
+      baccarat: 'Baccarat',
+      blackjack: 'Blackjack',
+      redblack: 'Red Black'
+    };
+
+    const logList = document.getElementById('logList');
+    const blackjackStateBox = document.getElementById('blackjackState');
+    const hitButton = document.getElementById('hitButton');
+    const standButton = document.getElementById('standButton');
+    const baccaratStateBox = document.getElementById('baccaratState');
+    const baccaratHitButton = document.getElementById('baccaratHitButton');
+    const baccaratStandButton = document.getElementById('baccaratStandButton');
+    const russianRouletteStateBox = document.getElementById('russianRouletteState');
+    const russianTriggerButton = document.getElementById('russianTriggerButton');
+    const pvpStateBox = document.getElementById('pvpState');
+    const pvpStartButton = document.getElementById('pvpStartButton');
+    const pvpHitButton = document.getElementById('pvpHitButton');
+    const pvpStandButton = document.getElementById('pvpStandButton');
+    const pvpModeHint = document.getElementById('pvpModeHint');
+    const pvpTurnBanner = document.getElementById('pvpTurnBanner');
+    const pvpResultCopies = document.getElementById('pvpResultCopies');
+    const formulaHighLowStateBox = document.getElementById('formulaHighLowState');
+    const formulaFinalButton = document.getElementById('formulaFinalButton');
+    const formulaResolveButton = document.getElementById('formulaResolveButton');
+    const balanceHint = document.getElementById('balanceHint');
+
+    async function loadPlayers() {
+      const res = await crlFetch('/api/players');
+      players = await res.json();
+
+      renderPlayerOptions();
+      updateRussianRoulettePlayers();
+      updatePvpPlayers();
+      updateFormulaHighLowPlayers();
+      updateBalanceHint();
+    }
+
+    function mergePlayers(nextPlayers) {
+      if (!Array.isArray(nextPlayers) || !nextPlayers.length) {
+        updateBalanceHint();
+        return;
+      }
+
+      nextPlayers.forEach((nextPlayer) => {
+        const existingPlayer = getPlayerById(nextPlayer.id);
+
+        if (existingPlayer) {
+          Object.assign(existingPlayer, nextPlayer);
+        } else {
+          players.push(nextPlayer);
+        }
+      });
+
+      renderPlayerOptions();
+      updateRussianRoulettePlayers();
+      updatePvpPlayers();
+      updateFormulaHighLowPlayers();
+      updateBalanceHint();
+    }
+
+    function renderPlayerOptions() {
+      const select = document.getElementById('playerId');
+      const selectedValue = select.value;
+
+      select.innerHTML = players
+        .map((p) => `<option value="${p.id}">${formatPlayerOption(p)}</option>`)
+        .join('');
+
+      if (players.some((p) => String(p.id) === selectedValue)) {
+        select.value = selectedValue;
+      }
+    }
+
+    function formatPlayerOption(player) {
+      const color = document.getElementById('color').value;
+      const gameType = document.getElementById('gameType').value;
+      const playsText = hasGameLimit(gameType)
+        ? ` - Plays:${formatGameLimit(getPlayerGameLimit(player, gameType))}`
+        : '';
+      return `${player.name} (#${player.id}) - ${CHIP_LABELS[color]}:${getChipBalance(player, color)}${playsText}`;
+    }
+
+    function getChipAmount(value) {
+      return Math.floor(Number(value));
+    }
+
+    function getPlayerById(playerId) {
+      return players.find((p) => p.id === Number(playerId));
+    }
+
+    function getChipBalance(player, color) {
+      return Math.floor(Number(player?.[color] || 0));
+    }
+
+    function getLimitGameType(gameType) {
+      return String(gameType || '').toLowerCase();
+    }
+
+    function hasGameLimit(gameType) {
+      return Boolean(GAME_LIMIT_LABELS[getLimitGameType(gameType)]);
+    }
+
+    function getPlayerGameLimit(player, gameType) {
+      return player?.gameLimits?.[getLimitGameType(gameType)];
+    }
+
+    function formatGameLimit(value) {
+      return Number.isFinite(Number(value)) ? Number(value) : 'no limit';
+    }
+
+    function hasGameLimitAvailable(player, gameType) {
+      if (!hasGameLimit(gameType)) {
+        return true;
+      }
+
+      const limit = getPlayerGameLimit(player, gameType);
+      return !Number.isFinite(Number(limit)) || Number(limit) > 0;
+    }
+
+    function validatePlayerBet(playerId, color, amount, label = '플레이어') {
+      const player = getPlayerById(playerId);
+      const bet = getChipAmount(amount);
+      const gameType = document.getElementById('gameType').value;
+
+      if (!Number.isFinite(bet) || bet < 0) {
+        alert('베팅 수량이 올바르지 않습니다.');
+        return false;
+      }
+
+      if (!player) {
+        alert(`${label}를 찾을 수 없습니다.`);
+        return false;
+      }
+
+      const balance = getChipBalance(player, color);
+
+      if (balance < bet) {
+        alert(`${player.name} 잔고 부족: ${CHIP_LABELS[color]} ${balance}개 보유 / 베팅 ${bet}개`);
+        return false;
+      }
+
+      if (!hasGameLimitAvailable(player, gameType)) {
+        alert(`${player.name} has no ${GAME_LIMIT_LABELS[gameType] || gameType} plays left.`);
+        return false;
+      }
+
+      return true;
+    }
+
+    function validatePvpBet(playerId, opponentId, color, amount) {
+      if (Number(playerId) === Number(opponentId)) {
+        alert('Choose two different players.');
+        return false;
+      }
+
+      return validatePlayerBet(playerId, color, amount, 'Player 1') &&
+        validatePlayerBet(opponentId, color, amount, 'Player 2');
+    }
+
+    function validateRussianRouletteBet(participantIds, color, amount) {
+      const bet = getChipAmount(amount);
+
+      if (!Number.isFinite(bet) || bet < 0) {
+        alert('베팅 수량이 올바르지 않습니다.');
+        return false;
+      }
+
+      const participants = participantIds.map(getPlayerById);
+
+      if (participants.some((player) => !player)) {
+        alert('참가자를 찾을 수 없습니다.');
+        return false;
+      }
+
+      const shortPlayers = participants
+        .filter((player) => getChipBalance(player, color) < bet)
+        .map((player) => `${player.name}: ${CHIP_LABELS[color]} ${getChipBalance(player, color)}개`);
+
+      if (shortPlayers.length) {
+        alert(`잔고 부족으로 시작할 수 없습니다.\n베팅: ${CHIP_LABELS[color]} ${bet}개\n${shortPlayers.join('\n')}`);
+        return false;
+      }
+
+      return true;
+    }
+
+    function renderTwoPlayerInputs(containerId, selectClassName, labels = ['Player 1', 'Player 2']) {
+      const container = document.getElementById(containerId);
+
+      if (!container) {
+        return;
+      }
+
+      const previousIds = [...container.querySelectorAll(`.${selectClassName}`)]
+        .map((select) => Number(select.value));
+      const usedIds = new Set();
+
+      container.innerHTML = '';
+
+      for (let index = 0; index < 2; index += 1) {
+        let selectedId = previousIds[index];
+
+        if (!players.some((p) => p.id === selectedId) || usedIds.has(selectedId)) {
+          selectedId = players.find((p) => !usedIds.has(p.id))?.id;
+        }
+
+        if (Number.isFinite(selectedId)) {
+          usedIds.add(selectedId);
+        }
+
+        const row = document.createElement('div');
+        const label = document.createElement('label');
+        const select = document.createElement('select');
+
+        row.className = 'participant-row';
+        label.textContent = labels[index] || `Player ${index + 1}`;
+        select.className = selectClassName;
+        select.onchange = updateBalanceHint;
+        select.innerHTML = '<option value="">Select player</option>' + players
+          .map((p) => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${formatPlayerOption(p)}</option>`)
+          .join('');
+        select.value = Number.isFinite(selectedId) ? String(selectedId) : '';
+
+        row.append(label, select);
+        container.appendChild(row);
+      }
+    }
+
+    function getTwoPlayerParticipantIds(selectClassName) {
+      return [...document.querySelectorAll(`.${selectClassName}`)]
+        .map((select) => (select.value === '' ? NaN : Number(select.value)));
+    }
+
+    function validateTwoPlayerParticipants(participantIds, color, amount, label) {
+      const bet = getChipAmount(amount);
+
+      if (participantIds.length !== 2 || participantIds.some((id) => !Number.isFinite(id))) {
+        alert(`Choose 2 players for ${label}.`);
+        return false;
+      }
+
+      return validatePvpBet(participantIds[0], participantIds[1], color, bet);
+    }
+
+    function updatePvpPlayers() {
+      const gameType = document.getElementById('gameType').value;
+      const labels = gameType === 'pvpbaccarat'
+        ? ['PLAYER hand', 'BANKER hand']
+        : ['Player 1', 'Player 2'];
+
+      renderTwoPlayerInputs('pvpParticipantInputs', 'pvp-participant-select', labels);
+      updateBalanceHint();
+    }
+
+    function getPvpParticipantIds() {
+      return getTwoPlayerParticipantIds('pvp-participant-select');
+    }
+
+    function updateFormulaHighLowPlayers() {
+      const participantInputs = document.getElementById('formulaParticipantInputs');
+      const participantCount = getFormulaParticipantCount();
+      const previousIds = [...participantInputs.querySelectorAll('.formula-participant-select')]
+        .map((select) => Number(select.value));
+      const usedIds = new Set();
+
+      participantInputs.innerHTML = '';
+
+      for (let index = 0; index < participantCount; index += 1) {
+        let selectedId = previousIds[index];
+
+        if (!players.some((p) => p.id === selectedId) || usedIds.has(selectedId)) {
+          selectedId = players.find((p) => !usedIds.has(p.id))?.id;
+        }
+
+        if (Number.isFinite(selectedId)) {
+          usedIds.add(selectedId);
+        }
+
+        const row = document.createElement('div');
+        const label = document.createElement('label');
+        const select = document.createElement('select');
+
+        row.className = 'participant-row';
+        label.textContent = `Player ${index + 1}`;
+        select.className = 'formula-participant-select';
+        select.onchange = updateBalanceHint;
+        select.innerHTML = '<option value="">Select player</option>' + players
+          .map((p) => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${formatPlayerOption(p)}</option>`)
+          .join('');
+        select.value = Number.isFinite(selectedId) ? String(selectedId) : '';
+
+        row.append(label, select);
+        participantInputs.appendChild(row);
+      }
+
+      updateBalanceHint();
+    }
+
+    function getFormulaParticipantCount() {
+      const count = Math.floor(Number(document.getElementById('formulaParticipantCount').value));
+      return Number.isFinite(count) && count >= 2 ? count : 2;
+    }
+
+    function getFormulaParticipantIds() {
+      return [...document.querySelectorAll('.formula-participant-select')]
+        .map((select) => (select.value === '' ? NaN : Number(select.value)));
+    }
+
+    function validateFormulaHighLowStart(participantIds, color, amount) {
+      const participantCount = getFormulaParticipantCount();
+      const bet = getChipAmount(amount);
+
+      if (participantIds.length !== participantCount || participantIds.some((id) => !Number.isFinite(id))) {
+        alert(`Choose exactly ${participantCount} participants.`);
+        return false;
+      }
+
+      if (new Set(participantIds).size !== participantIds.length) {
+        alert('Choose different players for every slot.');
+        return false;
+      }
+
+      if (!Number.isFinite(bet) || bet < 0) {
+        alert('Bet amount is invalid.');
+        return false;
+      }
+
+      const participants = participantIds.map(getPlayerById);
+
+      if (participants.some((player) => !player)) {
+        alert('Could not find every participant.');
+        return false;
+      }
+
+      const shortPlayers = participants
+        .filter((player) => getChipBalance(player, color) < bet)
+        .map((player) => `${player.name}: ${CHIP_LABELS[color]} ${getChipBalance(player, color)}`);
+
+      if (shortPlayers.length) {
+        alert(`Not enough chips to start.\nBet: ${CHIP_LABELS[color]} ${bet}\n${shortPlayers.join('\n')}`);
+        return false;
+      }
+
+      return true;
+    }
+
+    function updateFormulaRequiredInputs() {
+      document.getElementById('formulaRequiredHint').textContent =
+        'Each player gets 6 random number cards from 0-10 and the operators +, -, ×(*), ÷(/), ^. Use all 6 numbers exactly once.';
+    }
+
+    function formatCombinationOperatorsForDisplay(operators = []) {
+      return (operators || [])
+        .map((operator) => {
+          if (operator === '×') {
+            return '×(*)';
+          }
+
+          if (operator === '÷') {
+            return '÷(/)';
+          }
+
+          return operator;
+        })
+        .join(', ');
+    }
+
+    function validateFormulaSubmissionInputs() {
+      const inputs = [...document.querySelectorAll('.formula-submission-input')];
+
+      if (!inputs.length) {
+        alert('Start Combination Betting before resolving.');
+        return false;
+      }
+
+      const missing = inputs
+        .filter((input) => !input.value.trim())
+        .map((input) => input.dataset.playerName || 'Player');
+
+      if (missing.length) {
+        alert(`Fill required Combination Betting formulas:\n${missing.join('\n')}`);
+        return false;
+      }
+
+      return true;
+    }
+
+    function updateBalanceHint() {
+      const gameType = document.getElementById('gameType').value;
+      const color = document.getElementById('color').value;
+      const bet = getChipAmount(document.getElementById('amount').value);
+
+      renderPlayerOptions();
+
+      if (gameType === 'pvpbaccarat' || gameType === 'pvpblackjack') {
+        const selectedPlayers = getPvpParticipantIds()
+          .map(getPlayerById)
+          .filter(Boolean);
+        const rows = selectedPlayers.map((player) => {
+          const balance = getChipBalance(player, color);
+          const status = Number.isFinite(bet) && bet > 0 && balance < bet ? '부족' : '가능';
+          return `${player.name} ${balance}개 ${status}`;
+        });
+
+        balanceHint.textContent = rows.length
+          ? `PVP (${CHIP_LABELS[color]}): ${rows.join(' / ')}`
+          : '';
+        return;
+      }
+
+      if (gameType === 'formulahighlow') {
+        const selectedPlayers = getFormulaParticipantIds()
+          .map(getPlayerById)
+          .filter(Boolean);
+        const rows = selectedPlayers.map((player) => {
+          const balance = getChipBalance(player, color);
+          const status = Number.isFinite(bet) && bet > 0 && balance < bet ? '부족' : '가능';
+          return `${player.name} ${balance}개 ${status}`;
+        });
+        const pot = Number.isFinite(bet) && bet > 0 ? bet * selectedPlayers.length : 0;
+
+        balanceHint.textContent = rows.length
+          ? `Combination Betting (${CHIP_LABELS[color]}): random target / pot ${pot} / ${rows.join(' / ')}`
+          : '';
+        return;
+
+      }
+
+      if (gameType === 'russianroulette') {
+        const rows = getRussianRouletteParticipantIds()
+          .map(getPlayerById)
+          .filter(Boolean)
+          .map((player) => {
+            const balance = getChipBalance(player, color);
+            const status = Number.isFinite(bet) && bet > 0 && balance < bet ? '부족' : '가능';
+            return `${player.name} ${balance}개 ${status}`;
+          });
+
+        balanceHint.textContent = rows.length
+          ? `실시간 잔고 (${CHIP_LABELS[color]}): ${rows.join(' / ')}`
+          : '';
+        return;
+      }
+
+      const player = getPlayerById(document.getElementById('playerId').value);
+
+      if (!player) {
+        balanceHint.textContent = '';
+        return;
+      }
+
+      const balance = getChipBalance(player, color);
+      const limit = formatGameLimit(getPlayerGameLimit(player, gameType));
+      const status = Number.isFinite(bet) && bet > 0 && balance < bet ? '잔고 부족' : '플레이 가능';
+      balanceHint.textContent = `실시간 잔고: ${player.name} ${CHIP_LABELS[color]} ${balance}개 / 베팅 ${Number.isFinite(bet) ? bet : '-'}개 (${status}) / plays ${limit}`;
+    }
+
+    function updateRussianRoulettePlayers() {
+      const participantInputs = document.getElementById('russianParticipantInputs');
+      const participantCount = getRussianRouletteParticipantCount();
+      const previousIds = [...participantInputs.querySelectorAll('.russian-participant-select')]
+        .map((select) => Number(select.value));
+      const usedIds = new Set();
+
+      participantInputs.innerHTML = '';
+
+      for (let index = 0; index < participantCount; index += 1) {
+        let selectedId = previousIds[index];
+
+        if (!players.some((p) => p.id === selectedId) || usedIds.has(selectedId)) {
+          selectedId = players.find((p) => !usedIds.has(p.id))?.id;
+        }
+
+        if (Number.isFinite(selectedId)) {
+          usedIds.add(selectedId);
+        }
+
+        const row = document.createElement('div');
+        const label = document.createElement('label');
+        const select = document.createElement('select');
+
+        row.className = 'participant-row';
+        label.textContent = `Player ${index + 1}`;
+        select.className = 'russian-participant-select';
+        select.onchange = updateBalanceHint;
+        select.innerHTML = '<option value="">Select player</option>' + players
+          .map((p) => `<option value="${p.id}" ${p.id === selectedId ? 'selected' : ''}>${formatPlayerOption(p)}</option>`)
+          .join('');
+        select.value = Number.isFinite(selectedId) ? String(selectedId) : '';
+
+        row.append(label, select);
+        participantInputs.appendChild(row);
+      }
+
+      updateBalanceHint();
+    }
+
+    function getRussianRouletteParticipantCount() {
+      const count = Math.floor(Number(document.getElementById('russianParticipantCount').value));
+      return Number.isFinite(count) && count >= 2 ? count : 2;
+    }
+
+    function getRussianRouletteParticipantIds() {
+      return [...document.querySelectorAll('.russian-participant-select')]
+        .map((select) => (select.value === '' ? NaN : Number(select.value)));
+    }
+
+    function validateRussianRouletteParticipants(participantIds, participantCount) {
+      if (participantIds.length !== participantCount) {
+        alert(`Choose exactly ${participantCount} participants.`);
+        return false;
+      }
+
+      if (participantIds.some((id) => !Number.isFinite(id))) {
+        alert('Choose every participant.');
+        return false;
+      }
+
+      if (new Set(participantIds).size !== participantIds.length) {
+        alert('Choose different players for every slot.');
+        return false;
+      }
+
+      return true;
+    }
+
+    async function loadLogs() {
+      const res = await crlFetch('/api/logs?limit=100');
+      const logs = await res.json();
+      renderLogs(logs);
+    }
+
+    function updateRouletteDetailInput() {
+      const betType = document.getElementById('rouletteBetType').value;
+      const textWrap = document.getElementById('rouletteDetailTextWrap');
+      const selectWrap = document.getElementById('rouletteDetailSelectWrap');
+      const textInput = document.getElementById('rouletteDetail');
+      const selectInput = document.getElementById('rouletteDetailSelect');
+      const textLabel = document.getElementById('rouletteDetailLabel');
+      const selectLabel = document.getElementById('rouletteDetailSelectLabel');
+      const hint = document.getElementById('rouletteDetailHint');
+
+      const noDetailTypes = ['red', 'black', 'even', 'odd', 'low', 'high'];
+      const selectTypes = ['dozen', 'column'];
+
+      textInput.value = '';
+      selectInput.innerHTML = '';
+      textWrap.style.display = 'none';
+      selectWrap.style.display = 'none';
+
+      if (noDetailTypes.includes(betType)) {
+        hint.textContent = '';
+        return;
+      }
+
+      if (selectTypes.includes(betType)) {
+        const labels = betType === 'dozen'
+          ? ['1st dozen (1-12)', '2nd dozen (13-24)', '3rd dozen (25-36)']
+          : ['1st column', '2nd column', '3rd column'];
+
+        selectLabel.textContent = betType === 'dozen' ? 'Dozen' : 'Column';
+        selectInput.innerHTML = labels
+          .map((label, index) => `<option value="${index + 1}">${label}</option>`)
+          .join('');
+        selectWrap.style.display = 'block';
+        hint.textContent = 'Choose 1, 2, or 3.';
+        return;
+      }
+
+      textLabel.textContent = '번호 (0~36)';
+      textWrap.style.display = 'block';
+      hint.textContent = '중복 없이 1~4개 선택 · 1개 40:1 / 2개 20:1 / 3개 13:1 / 4개 9:1';
+    }
+
+    function getSelectedPvpGameType() {
+      const gameType = document.getElementById('gameType').value;
+      return gameType === 'pvpbaccarat' ? 'pvpbaccarat' : 'pvpblackjack';
+    }
+
+    function getPvpGameLabel(gameType) {
+      return gameType === 'pvpbaccarat' ? 'PVP Baccarat' : 'PVP Blackjack';
+    }
+
+    function formatPvpAction(action) {
+      if (action === 'hit') {
+        return 'Hit';
+      }
+
+      if (action === 'stand') {
+        return 'Stand';
+      }
+
+      return 'Waiting';
+    }
+
+    function formatPvpCards(cards) {
+      return Array.isArray(cards) && cards.length ? cards.join(', ') : '-';
+    }
+
+    function getPvpResultCopyText(state, playerKey) {
+      const player = state[playerKey] || {};
+      const playerLabel = playerKey === 'playerTwo' ? '플레이어 2' : '플레이어 1';
+      const resultChipText = state[`${playerKey}ResultChipText`] || '-';
+      const balanceText = player.balanceText || '-';
+
+      return `${getPvpGameLabel(state.gameType)}
+${playerLabel}: ${player.name || '-'}
+결과: ${state.result || '-'}
+승자: ${state.winnerName || '-'}
+결과 칩: ${resultChipText}
+현재 잔고: ${balanceText}`;
+    }
+
+    function renderPvpResultCopies(state) {
+      pvpResultCopies.innerHTML = '';
+
+      if (!state?.done) {
+        pvpResultCopies.hidden = true;
+        return;
+      }
+
+      ['playerOne', 'playerTwo'].forEach((playerKey, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `플레이어 ${index + 1}용 복사`;
+        button.onclick = () => copyText(getPvpResultCopyText(state, playerKey));
+        pvpResultCopies.appendChild(button);
+      });
+
+      pvpResultCopies.hidden = false;
+    }
+
+    function updatePvpControls(state = latestPvpState) {
+      const selectedGameType = getSelectedPvpGameType();
+      const canAct = Boolean(activePvpSessionId && state && !state.done);
+      const displayGameType = canAct ? state.gameType : selectedGameType;
+      const gameLabel = getPvpGameLabel(displayGameType);
+      const isBaccarat = displayGameType === 'pvpbaccarat';
+      const activeName = canAct ? state.activePlayerName : '';
+
+      pvpStartButton.textContent = `Start ${getPvpGameLabel(selectedGameType)}`;
+      pvpHitButton.textContent = canAct ? `${activeName}: Hit` : 'Hit';
+      pvpStandButton.textContent = canAct ? `${activeName}: Stand` : 'Stand';
+      pvpHitButton.disabled = !canAct;
+      pvpStandButton.disabled = !canAct;
+
+      pvpModeHint.textContent = isBaccarat
+        ? 'PLAYER hand and BANKER hand each choose Hit or Stand. Higher baccarat total wins.'
+        : 'Each player chooses Hit or Stand. Higher blackjack value wins unless a hand busts.';
+
+      if (!state) {
+        pvpTurnBanner.textContent = `${gameLabel}: choose 2 players and start a round.`;
+        pvpTurnBanner.classList.remove('is-done');
+        return;
+      }
+
+      pvpTurnBanner.textContent = state.done
+        ? `${gameLabel}: finished / ${state.result || 'Result recorded'}`
+        : `${gameLabel}: ${state.activePlayerName} turn / ${state.remainingCards ?? '-'} cards left`;
+      pvpTurnBanner.classList.toggle('is-done', Boolean(state.done));
+    }
+
+    function updateGameFields() {
+      const gameType = document.getElementById('gameType').value;
+      const isBlackjack = gameType === 'blackjack';
+      const isRoulette = gameType === 'roulette';
+      const isHighLow = gameType === 'highlow';
+      const isBaccarat = gameType === 'baccarat';
+      const isRedBlack = gameType === 'redblack';
+      const isPvpBaccarat = gameType === 'pvpbaccarat';
+      const isPvpBlackjack = gameType === 'pvpblackjack';
+      const isPvp = isPvpBaccarat || isPvpBlackjack;
+      const isRussianRoulette = gameType === 'russianroulette';
+      const isFormulaHighLow = gameType === 'formulahighlow';
+
+      document.getElementById('rouletteFields').style.display = isRoulette ? 'block' : 'none';
+      document.getElementById('highLowFields').style.display = isHighLow ? 'block' : 'none';
+      document.getElementById('baccaratFields').style.display = isBaccarat ? 'block' : 'none';
+      document.getElementById('redBlackFields').style.display = isRedBlack ? 'block' : 'none';
+      document.getElementById('pvpFields').style.display = isPvp ? 'block' : 'none';
+      document.getElementById('russianRouletteFields').style.display = isRussianRoulette ? 'block' : 'none';
+      document.getElementById('formulaHighLowFields').style.display = isFormulaHighLow ? 'block' : 'none';
+      document.getElementById('normalGameFields').style.display = isBlackjack || isRoulette || isHighLow || isBaccarat || isRedBlack || isPvp || isRussianRoulette || isFormulaHighLow ? 'none' : 'block';
+      document.getElementById('blackjackControls').style.display = isBlackjack ? 'block' : 'none';
+      document.getElementById('playerField').style.display = isRussianRoulette || isPvp || isFormulaHighLow ? 'none' : 'block';
+      updatePvpControls(latestPvpState);
+      formulaFinalButton.disabled = !activeFormulaHighLowSessionId;
+      formulaResolveButton.disabled = !activeFormulaHighLowSessionId;
+
+      if (isRoulette) {
+        updateRouletteDetailInput();
+      }
+
+      if (isRussianRoulette) {
+        updateRussianRoulettePlayers();
+      }
+
+      if (isPvp) {
+        updatePvpPlayers();
+      }
+
+      if (isFormulaHighLow) {
+        updateFormulaHighLowPlayers();
+        updateFormulaRequiredInputs();
+      }
+
+      updateBalanceHint();
+    }
+
+    function getBasePayload() {
+      return {
+        playerId: Number(document.getElementById('playerId').value),
+        color: document.getElementById('color').value,
+        amount: Number(document.getElementById('amount').value)
+      };
+    }
+
+    async function readResponse(res) {
+      const text = await res.text();
+
+      try {
+        return text ? JSON.parse(text) : {};
+      } catch (err) {
+        return { error: text || res.statusText || 'Unexpected server response.' };
+      }
+    }
+
+    async function playGame() {
+      const payload = getBasePayload();
+
+      if (!validatePlayerBet(payload.playerId, payload.color, payload.amount)) {
+        return;
+      }
+
+      const gameType = document.getElementById('gameType').value;
+      const isRoulette = gameType === 'roulette';
+      const isHighLow = gameType === 'highlow';
+      const isBaccarat = gameType === 'baccarat';
+      const isRedBlack = gameType === 'redblack';
+      const extra1 = isRoulette
+        ? document.getElementById('rouletteBetType').value
+        : isHighLow
+          ? document.getElementById('highLowChoice').value
+          : isBaccarat
+            ? document.getElementById('baccaratSide').value
+            : isRedBlack
+              ? document.getElementById('redBlackChoice').value
+        : document.getElementById('extra1').value;
+      const extra2 = isRoulette
+        ? getRouletteDetail()
+        : isHighLow
+          ? ''
+          : isBaccarat
+            ? ''
+            : isRedBlack
+              ? ''
+        : document.getElementById('extra2').value;
+
+      const res = await crlFetch('/api/game', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          gameType,
+          multiplier: Number(document.getElementById('multiplier').value),
+          extra: {
+            pick: extra1,
+            detail: extra2,
+            result: extra2,
+            choice: extra1,
+            card: extra2,
+            side: extra1,
+            playerSum: extra1,
+            dealerSum: extra2,
+            action: extra1
+          }
+        })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to resolve game.');
+        return;
+      }
+
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+      const resultChipText = data.resultChipText ? `\n${data.resultChipText}` : '';
+      alert(gameType === 'roulette'
+        ? `Roulette result: ${data.result} / ${data.win ? 'win' : 'loss'}${resultChipText}`
+        : gameType === 'highlow'
+          ? `High Low card: ${data.result} / ${data.win ? 'win' : 'loss or push'}${resultChipText}`
+        : gameType === 'baccarat'
+          ? `Baccarat result: ${data.result} / ${data.win ? 'win' : 'loss or push'}${resultChipText}`
+        : gameType === 'redblack'
+          ? `Red Black result: ${data.result} / ${data.win ? 'win' : 'loss'}${resultChipText}`
+        : `${data.win ? 'Win processed.' : 'Loss processed.'}${resultChipText}`);
+    }
+
+    function getRouletteDetail() {
+      const selectWrap = document.getElementById('rouletteDetailSelectWrap');
+
+      return selectWrap.style.display === 'none'
+        ? document.getElementById('rouletteDetail').value
+        : document.getElementById('rouletteDetailSelect').value;
+    }
+
+    async function startPvpGame() {
+      const gameType = document.getElementById('gameType').value;
+      const participantIds = getPvpParticipantIds();
+      const payload = {
+        ...getBasePayload(),
+        playerId: participantIds[0],
+        opponentId: participantIds[1]
+      };
+
+      if (!validateTwoPlayerParticipants(participantIds, payload.color, payload.amount, 'PVP')) {
+        return;
+      }
+
+      const res = await crlFetch(gameType === 'pvpbaccarat' ? '/api/pvp-baccarat/start' : '/api/pvp-blackjack/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to start PVP game.');
+        return;
+      }
+
+      activePvpSessionId = data.state.id;
+      renderPvpState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+    }
+
+    async function pvpAction(action) {
+      const res = await crlFetch('/api/pvp/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: activePvpSessionId, action })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to progress PVP game.');
+        return;
+      }
+
+      renderPvpState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+
+      if (data.state.done) {
+        activePvpSessionId = null;
+        alert(`${data.state.result}${data.state.resultChipTexts?.length ? `\n${data.state.resultChipTexts.join('\n')}` : ''}`);
+      }
+    }
+
+    function renderPvpState(state) {
+      latestPvpState = state;
+
+      const isBaccarat = state.gameType === 'pvpbaccarat';
+      const gameLabel = getPvpGameLabel(state.gameType);
+      const firstSeat = isBaccarat ? 'PLAYER hand' : 'Player 1';
+      const secondSeat = isBaccarat ? 'BANKER hand' : 'Player 2';
+      const valueLabel = isBaccarat ? 'Total' : 'Value';
+      const playerOneValue = isBaccarat ? state.playerOneTotal : state.playerOneValue;
+      const playerTwoValue = isBaccarat ? state.playerTwoTotal : state.playerTwoValue;
+      const status = state.done ? 'Finished' : `${state.activePlayerName} to act`;
+
+      pvpStateBox.textContent = `${gameLabel}
+Status: ${status}
+Bet: ${CHIP_LABELS[state.color] || state.color} ${state.bet}
+Deck/Shoe left: ${state.remainingCards ?? '-'}
+
+${firstSeat}: ${state.playerOne.name}
+Action: ${formatPvpAction(state.playerOneAction)}
+Cards: ${formatPvpCards(state.playerOneCards)}
+${valueLabel}: ${playerOneValue ?? '-'}
+
+${secondSeat}: ${state.playerTwo.name}
+Action: ${formatPvpAction(state.playerTwoAction)}
+Cards: ${formatPvpCards(state.playerTwoCards)}
+${valueLabel}: ${playerTwoValue ?? '-'}
+
+Result: ${state.result || 'In progress'}
+Winner: ${state.winnerName || '-'}${state.resultChipTexts?.length ? `\nResult chips:\n${state.resultChipTexts.join('\n')}` : ''}`;
+      renderPvpResultCopies(state);
+      updatePvpControls(state);
+    }
+
+    async function startFormulaHighLow() {
+      const participantIds = getFormulaParticipantIds();
+      const payload = {
+        ...getBasePayload(),
+        participantIds,
+        roundNumber: Number(document.getElementById('formulaRoundNumber').value)
+      };
+
+      if (!validateFormulaHighLowStart(participantIds, payload.color, payload.amount)) {
+        return;
+      }
+
+      const res = await crlFetch('/api/formula-high-low/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to start Combination Betting.');
+        return;
+      }
+
+      activeFormulaHighLowSessionId = data.state.id;
+      clearFormulaHighLowFormulaInputs();
+      updateFormulaRequiredInputs();
+      renderFormulaHighLowState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+    }
+
+    async function dealFormulaHighLowFinalCard() {
+      const res = await crlFetch('/api/formula-high-low/final-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: activeFormulaHighLowSessionId })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to refresh Combination Betting.');
+        return;
+      }
+
+      renderFormulaHighLowState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+    }
+
+    async function resolveFormulaHighLow() {
+      if (!activeFormulaHighLowSessionId) {
+        alert('No Combination Betting session in progress.');
+        return;
+      }
+
+      if (!validateFormulaSubmissionInputs()) {
+        return;
+      }
+
+      const res = await crlFetch('/api/formula-high-low/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: activeFormulaHighLowSessionId,
+          submissions: getFormulaSubmissions()
+        })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to resolve Combination Betting.');
+        return;
+      }
+
+      renderFormulaHighLowState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+      activeFormulaHighLowSessionId = null;
+      alert(`${data.state.result || 'Combination Betting resolved.'}${data.state.resultChipTexts?.length ? `\n${data.state.resultChipTexts.join('\n')}` : ''}`);
+    }
+
+    function clearFormulaHighLowFormulaInputs() {
+      document.getElementById('formulaSubmissionInputs').innerHTML = '';
+    }
+
+    function getFormulaSubmissions() {
+      return [...document.querySelectorAll('.formula-submission-input')]
+        .map((input) => ({
+          playerId: Number(input.dataset.playerId),
+          formula: input.value
+        }));
+    }
+
+    function renderFormulaSubmissionInputs(state) {
+      const container = document.getElementById('formulaSubmissionInputs');
+
+      container.innerHTML = '';
+
+      (state.participants || []).forEach((participant) => {
+        const row = document.createElement('div');
+        const label = document.createElement('label');
+        const input = document.createElement('input');
+        const hint = document.createElement('div');
+
+        row.className = 'form-row';
+        label.textContent = `${participant.name} formula`;
+        input.type = 'text';
+        input.className = 'formula-submission-input';
+        input.dataset.playerId = participant.id;
+        input.dataset.playerName = participant.name;
+        input.placeholder = 'Example: 10 ^ 2 - 7 + 4 * 3 / 1';
+        input.value = participant.submission || '';
+        input.disabled = state.stage !== 'input';
+        hint.className = 'hint';
+        hint.textContent = `Numbers: ${(participant.numbers || []).join(', ')} / Operators: ${formatCombinationOperatorsForDisplay(participant.operators)} / Use every number once`;
+
+        row.append(label, document.createElement('br'), input, hint);
+        container.appendChild(row);
+      });
+    }
+
+    function renderFormulaHighLowState(state) {
+      const participantText = (state.participants || [])
+        .map((participant, index) => {
+          const evaluation = participant.evaluation
+            ? `${participant.evaluation.expression} = ${participant.evaluation.value} (distance ${participant.evaluation.distance})`
+            : 'waiting for formula';
+
+          return `${index + 1}. ${participant.name}
+Numbers: ${(participant.numbers || []).join(', ') || '-'}
+Operators: ${formatCombinationOperatorsForDisplay(participant.operators) || '-'}
+Formula: ${participant.submission || '-'}
+Evaluation: ${evaluation}
+Result chips: ${participant.resultChipText || '-'}`;
+        })
+        .join('\n\n');
+
+      formulaHighLowStateBox.textContent = `Combination Betting
+Round: ${state.roundNumber || '-'}
+Stage: ${state.stage}
+Target: ${state.target}
+Bet: ${state.color} ${state.bet}
+Pot: ${state.color} ${state.pot}
+Operators: ${formatCombinationOperatorsForDisplay(state.operatorCards)}
+
+${participantText || 'No participants'}
+
+Winner: ${state.winnerNames || '-'}
+Result: ${state.result || 'in progress'}${state.resultChipTexts?.length ? `\nResult chips:\n${state.resultChipTexts.join('\n')}` : ''}`;
+
+      renderFormulaSubmissionInputs(state);
+      formulaFinalButton.disabled = true;
+      formulaResolveButton.disabled = state.stage !== 'input';
+    }
+
+    async function startRussianRoulette() {
+      const basePayload = getBasePayload();
+      const participantCount = getRussianRouletteParticipantCount();
+      const participantIds = getRussianRouletteParticipantIds();
+
+      if (!validateRussianRouletteParticipants(participantIds, participantCount)) {
+        return;
+      }
+
+      if (!validateRussianRouletteBet(participantIds, basePayload.color, basePayload.amount)) {
+        return;
+      }
+
+      const payload = {
+        ...basePayload,
+        participantCount,
+        participantIds
+      };
+
+      const res = await crlFetch('/api/russian-roulette/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to start Russian Roulette.');
+        return;
+      }
+
+      activeRussianRouletteSessionId = data.state.id;
+      renderRussianRouletteState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+    }
+
+    async function pullRussianRouletteTrigger() {
+      const res = await crlFetch('/api/russian-roulette/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: activeRussianRouletteSessionId })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to progress Russian Roulette.');
+        return;
+      }
+
+      renderRussianRouletteState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+
+      if (data.state.done) {
+        activeRussianRouletteSessionId = null;
+        alert(`${data.state.result}${data.state.resultChipTexts?.length ? `\n${data.state.resultChipTexts.join('\n')}` : ''}`);
+      }
+    }
+
+    function renderRussianRouletteState(state) {
+      const activePlayers = state.activePlayers.map((p) => p.name).join(', ') || '-';
+      const eliminatedPlayers = state.eliminatedPlayers.map((p) => `${p.round}R ${p.name}`).join(', ') || '-';
+
+      russianRouletteStateBox.textContent = `Participants: ${state.participants.map((p) => p.name).join(', ')}
+Bet: ${state.color} ${state.bet}
+Pot: ${state.color} ${state.pot}
+Round: ${state.round}
+Active: ${activePlayers}
+Eliminated: ${eliminatedPlayers}
+Result: ${state.lastAction}${state.resultChipTexts?.length ? `\nResult chips:\n${state.resultChipTexts.join('\n')}` : ''}`;
+
+      russianTriggerButton.disabled = state.done;
+    }
+
+    async function startBaccarat() {
+      const payload = {
+        ...getBasePayload(),
+        side: document.getElementById('baccaratSide').value
+      };
+
+      if (!validatePlayerBet(payload.playerId, payload.color, payload.amount)) {
+        return;
+      }
+
+      const res = await crlFetch('/api/baccarat/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to start baccarat.');
+        return;
+      }
+
+      activeBaccaratPlayerId = data.state.done ? null : payload.playerId;
+      renderBaccaratState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+
+      if (data.state.done) {
+        alert(`Baccarat ${data.state.outcome}${data.state.resultChipText ? `\n${data.state.resultChipText}` : ''}`);
+      }
+    }
+
+    async function baccaratAction(action) {
+      const playerId = activeBaccaratPlayerId || Number(document.getElementById('playerId').value);
+      const res = await crlFetch('/api/baccarat/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, action })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to progress baccarat.');
+        return;
+      }
+
+      renderBaccaratState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+
+      if (data.state.done) {
+        activeBaccaratPlayerId = null;
+        alert(`Baccarat ${data.state.outcome}${data.state.resultChipText ? `\n${data.state.resultChipText}` : ''}`);
+      }
+    }
+
+    function renderBaccaratState(state) {
+      baccaratStateBox.textContent = `Bet side: ${state.side}
+PLAYER cards: ${state.playerCards.join(', ')} (${state.playerTotal})
+BANKER cards: ${state.bankerCards.join(', ')} (${state.bankerTotal})
+Player action: ${state.playerAction || '-'}
+Player third: ${state.playerThirdCard || '-'}
+Banker third: ${state.bankerThirdCard || '-'}
+Remaining cards: ${state.remainingCards}
+Status: ${state.done ? `${state.outcome}${state.push ? ' push' : state.win ? ' win' : ' loss'}` : 'choose Hit or Stand'}${state.resultChipText ? `\nResult chips: ${state.resultChipText}` : ''}`;
+
+      baccaratHitButton.disabled = state.done;
+      baccaratStandButton.disabled = state.done;
+    }
+
+    async function startBlackjack() {
+      const payload = getBasePayload();
+
+      if (!validatePlayerBet(payload.playerId, payload.color, payload.amount)) {
+        return;
+      }
+
+      const res = await crlFetch('/api/blackjack/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to start blackjack.');
+        return;
+      }
+
+      activeBlackjackPlayerId = payload.playerId;
+      renderBlackjackState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+    }
+
+    async function blackjackAction(action) {
+      const playerId = activeBlackjackPlayerId || Number(document.getElementById('playerId').value);
+      const res = await crlFetch('/api/blackjack/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, action })
+      });
+
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || 'Failed to progress blackjack.');
+        return;
+      }
+
+      renderBlackjackState(data.state);
+      renderLogs(data.logs);
+      mergePlayers(data.players);
+
+      if (data.state.done) {
+        activeBlackjackPlayerId = null;
+        alert(`Blackjack ${data.state.result}${data.state.resultChipText ? `\n${data.state.resultChipText}` : ''}`);
+      }
+    }
+
+    function renderBlackjackState(state) {
+      blackjackStateBox.textContent = `Player cards: ${state.playerCards.join(', ')} (${state.playerValue})
+Open card: ${state.openCard || state.dealerCards[0] || '-'}
+Dealer cards: ${state.dealerCards.join(', ')} (${state.dealerValue})
+Draw result: ${state.lastDraw || '-'}
+Dealer draws: ${state.dealerDraws.length ? state.dealerDraws.join(', ') : '-'}
+Remaining cards: ${state.remainingCards}
+Status: ${state.done ? state.result : 'choose Hit or Stand'}${state.resultChipText ? `\nResult chips: ${state.resultChipText}` : ''}`;
+
+      hitButton.disabled = state.done;
+      standButton.disabled = state.done;
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('Copied.');
+      } catch (err) {
+        console.error(err);
+        alert('Copy failed.');
+      }
+    }
+
+    function mergeLogs(logs) {
+      if (Array.isArray(logs)) {
+        const seen = new Set();
+        allLogs = [...logs, ...allLogs]
+          .filter((log) => {
+            const key = log.id || `${log.type}-${log.createdAt}-${log.text}`;
+
+            if (seen.has(key)) {
+              return false;
+            }
+
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 100);
+      }
+
+      return allLogs;
+    }
+
+    function isGroupedGameLogType(type) {
+      return ['baccarat', 'blackjack', 'russianroulette'].includes(type);
+    }
+
+    function getLegacyGameLogKey(log) {
+      if (!isGroupedGameLogType(log.type)) {
+        return '';
+      }
+
+      if (log.type === 'russianroulette') {
+        return '';
+      }
+
+      const text = String(log.text || log.publicText || '');
+      const player = text.match(/^플레이어:\s*(.+)$/m)?.[1] || '';
+      const bet = text.match(/^베팅:\s*(.+)$/m)?.[1] || '';
+
+      return player && bet ? `${log.type}:${player}:${bet}` : '';
+    }
+
+    function areLogsNear(first, second) {
+      const firstTime = Date.parse(first.createdAt || '');
+      const secondTime = Date.parse(second.createdAt || '');
+
+      if (!Number.isFinite(firstTime) || !Number.isFinite(secondTime)) {
+        return false;
+      }
+
+      return Math.abs(firstTime - secondTime) <= 60 * 60 * 1000;
+    }
+
+    function groupLogsForRender(logs) {
+      const groups = [];
+      const groupsByKey = new Map();
+
+      logs.forEach((log) => {
+        const groupKey = isGroupedGameLogType(log.type) && log.groupId
+          ? `${log.type}:${log.groupId}`
+          : '';
+
+        if (groupKey) {
+          let group = groupsByKey.get(groupKey);
+
+          if (!group) {
+            group = { key: groupKey, legacyKey: getLegacyGameLogKey(log), type: log.type, logs: [] };
+            groupsByKey.set(groupKey, group);
+            groups.push(group);
+          }
+
+          if (!group.legacyKey) {
+            group.legacyKey = getLegacyGameLogKey(log);
+          }
+
+          group.logs.push(log);
+          return;
+        }
+
+        const legacyKey = getLegacyGameLogKey(log);
+        const previousGroup = groups[groups.length - 1];
+
+        if (
+          legacyKey &&
+          previousGroup?.legacyKey === legacyKey &&
+          areLogsNear(log, previousGroup.logs[previousGroup.logs.length - 1])
+        ) {
+          previousGroup.logs.push(log);
+          return;
+        }
+
+        groups.push({
+          key: log.id || `${log.type}-${log.createdAt}-${log.text}`,
+          legacyKey,
+          type: log.type,
+          logs: [log]
+        });
+      });
+
+      return groups;
+    }
+
+    function getLogsInDisplayOrder(group) {
+      return [...group.logs].sort((left, right) => {
+        const leftTime = Date.parse(left.createdAt || '');
+        const rightTime = Date.parse(right.createdAt || '');
+        return (Number.isFinite(leftTime) ? leftTime : 0) - (Number.isFinite(rightTime) ? rightTime : 0);
+      });
+    }
+
+    function getGroupedCopyText(group) {
+      return getLogsInDisplayOrder(group)
+        .map((log) => log.publicText || log.text)
+        .join('\n\n');
+    }
+
+    function parseLogSections(text) {
+      const matches = [...String(text || '').matchAll(/^\[([^\]\r\n]+)\]\s*$/gm)];
+
+      if (!matches.length) {
+        return null;
+      }
+
+      return {
+        title: text.slice(0, matches[0].index).trim(),
+        sections: matches.map((match, index) => {
+          const start = match.index + match[0].length;
+          const end = matches[index + 1]?.index ?? text.length;
+
+          return {
+            label: match[1],
+            text: text.slice(start, end).trim()
+          };
+        })
+      };
+    }
+
+    function isCommonLogSection(label) {
+      return label === '공통 공개';
+    }
+
+    function isPlayerCopySection(label) {
+      return /\s*copy용\s*$/.test(label);
+    }
+
+    function getSectionCopyText(parsed, section) {
+      if (isPlayerCopySection(section.label)) {
+        return section.text;
+      }
+
+      const common = parsed.sections.find((candidate) => isCommonLogSection(candidate.label));
+
+      if (section.label.startsWith('플레이어')) {
+        return section.text;
+      }
+
+      if (isCommonLogSection(section.label) || !common) {
+        return [
+          parsed.title,
+          `[${section.label}]\n${section.text}`
+        ].filter(Boolean).join('\n\n');
+      }
+
+      const parts = [];
+
+      if (parsed.title) {
+        parts.push(parsed.title);
+      }
+
+      parts.push(`[${common.label}]\n${common.text}`);
+      parts.push(`[${section.label}]\n${section.text}`);
+      return parts.join('\n\n');
+    }
+
+    function getSectionCopyButtonLabel(section) {
+      if (isCommonLogSection(section.label)) {
+        return '공통 공개 복사';
+      }
+
+      if (isPlayerCopySection(section.label)) {
+        return `${section.label.replace(/\s*copy용\s*$/, '')} 복사`;
+      }
+
+      if (section.label.startsWith('플레이어')) {
+        return `${section.label.replace(' 공개', '').replace(' 제출 정보', '')}용 복사`;
+      }
+
+      return `${section.label} 복사`;
+    }
+
+    function getSingleGameLogLabel(type) {
+      if (type === 'baccarat') {
+        return '바카라 게임';
+      }
+
+      if (type === 'blackjack') {
+        return '블랙잭 게임';
+      }
+
+      if (type === 'russianroulette') {
+        return '라운드 진행';
+      }
+
+      return '';
+    }
+
+    function appendSingleLogSection(container, labelText, text) {
+      const wrapper = document.createElement('div');
+      const block = document.createElement('div');
+      const header = document.createElement('div');
+      const label = document.createElement('strong');
+      const copyButton = document.createElement('button');
+      const pre = document.createElement('pre');
+
+      wrapper.className = 'log-public-sections';
+      block.className = 'log-public-section';
+      header.className = 'log-public-section-head';
+      label.textContent = labelText;
+      copyButton.type = 'button';
+      copyButton.textContent = '로그 복사';
+      copyButton.onclick = () => copyText(text);
+      pre.textContent = text;
+
+      header.append(label, copyButton);
+      block.append(header, pre);
+      wrapper.appendChild(block);
+      container.appendChild(wrapper);
+    }
+
+    function appendLogBody(container, text, type = '') {
+      const parsed = parseLogSections(text);
+
+      if (!parsed) {
+        const singleLogLabel = getSingleGameLogLabel(type);
+
+        if (singleLogLabel) {
+          appendSingleLogSection(container, singleLogLabel, text);
+          return;
+        }
+
+        const pre = document.createElement('pre');
+        pre.textContent = text;
+        container.appendChild(pre);
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'log-public-sections';
+
+      if (parsed.title) {
+        const title = document.createElement('div');
+        title.className = 'log-public-title';
+        title.textContent = parsed.title;
+        wrapper.appendChild(title);
+      }
+
+      parsed.sections.forEach((section) => {
+        const block = document.createElement('div');
+        const header = document.createElement('div');
+        const label = document.createElement('strong');
+        const pre = document.createElement('pre');
+
+        block.className = 'log-public-section';
+        header.className = 'log-public-section-head';
+        label.textContent = section.label;
+        pre.textContent = section.text;
+        header.appendChild(label);
+
+        if (section.label) {
+          const copyButton = document.createElement('button');
+          copyButton.type = 'button';
+          copyButton.textContent = getSectionCopyButtonLabel(section);
+          copyButton.onclick = () => copyText(getSectionCopyText(parsed, section));
+          header.appendChild(copyButton);
+        }
+
+        block.append(header, pre);
+        wrapper.appendChild(block);
+      });
+
+      container.appendChild(wrapper);
+    }
+
+    function renderLogs(nextLogs) {
+      const logs = mergeLogs(nextLogs);
+      const groups = groupLogsForRender(logs);
+      logList.innerHTML = '';
+
+      if (!groups.length) {
+        logList.textContent = 'No progress logs yet.';
+        return;
+      }
+
+      groups.forEach((group) => {
+        const item = document.createElement('div');
+        const button = document.createElement('button');
+        const title = document.createElement('strong');
+        const latestLog = group.logs[0];
+
+        item.className = 'log-item';
+        title.textContent = `${group.type} | ${new Date(latestLog.createdAt).toLocaleString()}${group.logs.length > 1 ? ` | ${group.logs.length} logs` : ''}`;
+        button.type = 'button';
+        button.textContent = group.logs.length > 1 ? 'Copy this game' : 'Copy this log';
+        button.onclick = () => copyText(getGroupedCopyText(group));
+
+        item.append(title, document.createTextNode(' '), button);
+
+        getLogsInDisplayOrder(group).forEach((log) => {
+          appendLogBody(item, log.publicText || log.text, log.type);
+        });
+
+        logList.appendChild(item);
+      });
+    }
+
+    loadPlayers();
+    loadLogs();
+    updateGameFields();
+  </script>
+</body>
+</html>

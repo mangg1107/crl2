@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRL2 · 대시보드</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/access.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <nav aria-label="주 메뉴" class="frame site-nav">
+      <a href="/" class="site-brand">CRL2</a>
+      <div class="nav-links">
+        <a href="/">BAND 운영</a>
+        <a href="/dashboard.html" aria-current="page">대시보드</a>
+        <a href="/game.html">웹 게임</a>
+        <a href="/exchange.html">환전</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="frame workspace">
+  <header class="page-heading">
+    <h1>대시보드</h1>
+    <div class="page-actions">
+      <button type="button" onclick="reloadPlayers()">새로고침</button>
+      <button type="button" onclick="copyLog()">최신 공개 로그 복사</button>
+    </div>
+  </header>
+
+  <h2>칩 가치 확인</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Team</th>
+          <th>Red</th>
+          <th>Blue</th>
+          <th>Green</th>
+          <th>Yellow</th>
+          <th>White</th>
+          <th>Total Value</th>
+        </tr>
+      </thead>
+      <tbody id="chipTb"></tbody>
+    </table>
+  </div>
+
+  <h2>리미트 확인</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Team</th>
+          <th>Roulette</th>
+          <th>High Low</th>
+          <th>Baccarat</th>
+          <th>Blackjack</th>
+          <th>Red Black</th>
+        </tr>
+      </thead>
+      <tbody id="limitTb"></tbody>
+    </table>
+  </div>
+
+  <h2>Team Totals</h2>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Team</th>
+          <th>Players</th>
+          <th>Red</th>
+          <th>Blue</th>
+          <th>Green</th>
+          <th>Yellow</th>
+          <th>White</th>
+          <th>Total Value</th>
+        </tr>
+      </thead>
+      <tbody id="teamTb"></tbody>
+    </table>
+  </div>
+
+  <h2>Latest Public Log</h2>
+  <textarea id="log" readonly></textarea>
+
+  <h2>All Logs</h2>
+  <div class="toolbar">
+    <label for="logTypeFilter">Filter</label>
+    <select id="logTypeFilter" onchange="renderLogs()">
+      <option value="all">All logs</option>
+      <option value="blackjack">Blackjack</option>
+      <option value="pvpblackjack">PVP Blackjack</option>
+      <option value="roulette">Roulette</option>
+      <option value="highlow">High Low</option>
+      <option value="baccarat">Baccarat</option>
+      <option value="pvpbaccarat">PVP Baccarat</option>
+      <option value="redblack">Red Black</option>
+      <option value="russianroulette">Russian Roulette</option>
+      <option value="formulahighlow">Combination Betting</option>
+      <option value="balance">Balance</option>
+      <option value="chip-adjust">Chip Adjust</option>
+      <option value="exchange">Chip Move</option>
+      <option value="balance-swap">Balance Swap</option>
+      <option value="convert">Convert</option>
+    </select>
+    <span id="logCount"></span>
+  </div>
+  <div id="logList" class="log-list"></div>
+
+  </main>
+  <script>
+    const chipTb = document.getElementById('chipTb');
+    const limitTb = document.getElementById('limitTb');
+    const teamTb = document.getElementById('teamTb');
+    const logBox = document.getElementById('log');
+    const logList = document.getElementById('logList');
+    const logTypeFilter = document.getElementById('logTypeFilter');
+    const logCount = document.getElementById('logCount');
+    let latestPublicLogText = '';
+    let allLogs = [];
+    const GAME_LIMIT_LABELS = {
+      roulette: 'Roulette',
+      highlow: 'High Low',
+      baccarat: 'Baccarat',
+      blackjack: 'Blackjack',
+      redblack: 'Red Black'
+    };
+
+    function formatLimit(value) {
+      return Number.isFinite(Number(value)) ? Number(value) : 'no limit';
+    }
+
+    function renderChipValues(players) {
+      chipTb.innerHTML = '';
+      players.forEach((p) => {
+        chipTb.innerHTML += `
+          <tr>
+            <td><button class="id-button" type="button" onclick="logBalance(${p.id})">${p.id}</button></td>
+            <td>${p.name}</td>
+            <td>${p.team || '-'}</td>
+            <td>${p.red || 0}</td>
+            <td>${p.blue || 0}</td>
+            <td>${p.green || 0}</td>
+            <td>${p.yellow || 0}</td>
+            <td>${p.white || 0}</td>
+            <td>${p.totalValue || 0}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderLimits(players) {
+      limitTb.innerHTML = '';
+      players.forEach((p) => {
+        const limits = p.gameLimits || {};
+        limitTb.innerHTML += `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.name}</td>
+            <td>${p.team || '-'}</td>
+            <td>${formatLimit(limits.roulette)}</td>
+            <td>${formatLimit(limits.highlow)}</td>
+            <td>${formatLimit(limits.baccarat)}</td>
+            <td>${formatLimit(limits.blackjack)}</td>
+            <td>${formatLimit(limits.redblack)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderTeams(teams) {
+      teamTb.innerHTML = '';
+
+      if (!teams.length) {
+        teamTb.innerHTML = '<tr><td colspan="8">No teams yet.</td></tr>';
+        return;
+      }
+
+      teams.forEach((team) => {
+        const chips = team.chipTotals || {};
+        teamTb.innerHTML += `
+          <tr>
+            <td>${team.team || '-'}</td>
+            <td>${team.playerCount || 0}</td>
+            <td>${chips.red || 0}</td>
+            <td>${chips.blue || 0}</td>
+            <td>${chips.green || 0}</td>
+            <td>${chips.yellow || 0}</td>
+            <td>${chips.white || 0}</td>
+            <td>${team.totalValue || 0}</td>
+          </tr>
+        `;
+      });
+    }
+
+    async function reloadPlayers() {
+      const [teamRes, logsRes] = await Promise.all([
+        crlFetch('/api/teams'),
+        crlFetch('/api/logs?limit=100')
+      ]);
+      const [teamData, logs] = await Promise.all([
+        teamRes.json(),
+        logsRes.json()
+      ]);
+
+      renderChipValues(teamData.players || []);
+      renderLimits(teamData.players || []);
+      renderTeams(teamData.teams || []);
+
+      allLogs = logs;
+      renderLogs();
+    }
+
+    async function readResponse(res) {
+      const text = await res.text();
+
+      try {
+        return text ? JSON.parse(text) : {};
+      } catch (err) {
+        return { error: text || res.statusText || 'Unexpected server response.' };
+      }
+    }
+
+    async function logBalance(playerId) {
+      const res = await crlFetch('/api/balance-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId })
+      });
+      const data = await readResponse(res);
+
+      if (!res.ok) {
+        alert(data.error || '잔고 로그 생성 실패');
+        return;
+      }
+
+      renderLogs(data.logs);
+    }
+
+    async function copyLog() {
+      await copyText(latestPublicLogText || logBox.value);
+    }
+
+    async function copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('Copied.');
+      } catch (err) {
+        console.error(err);
+        alert('Copy failed.');
+      }
+    }
+
+    function getFilteredLogs() {
+      const selectedType = logTypeFilter.value;
+      return selectedType === 'all'
+        ? allLogs
+        : allLogs.filter((log) => log.type === selectedType);
+    }
+
+    function mergeLogs(logs) {
+      if (Array.isArray(logs)) {
+        const seen = new Set();
+        allLogs = [...logs, ...allLogs]
+          .filter((log) => {
+            const key = log.id || `${log.type}-${log.createdAt}-${log.text}`;
+
+            if (seen.has(key)) {
+              return false;
+            }
+
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 100);
+      }
+
+      return allLogs;
+    }
+
+    function isGroupedGameLogType(type) {
+      return ['baccarat', 'blackjack', 'russianroulette'].includes(type);
+    }
+
+    function getLegacyGameLogKey(log) {
+      if (!isGroupedGameLogType(log.type)) {
+        return '';
+      }
+
+      if (log.type === 'russianroulette') {
+        return '';
+      }
+
+      const text = String(log.text || log.publicText || '');
+      const player = text.match(/^플레이어:\s*(.+)$/m)?.[1] || '';
+      const bet = text.match(/^베팅:\s*(.+)$/m)?.[1] || '';
+
+      return player && bet ? `${log.type}:${player}:${bet}` : '';
+    }
+
+    function areLogsNear(first, second) {
+      const firstTime = Date.parse(first.createdAt || '');
+      const secondTime = Date.parse(second.createdAt || '');
+
+      if (!Number.isFinite(firstTime) || !Number.isFinite(secondTime)) {
+        return false;
+      }
+
+      return Math.abs(firstTime - secondTime) <= 60 * 60 * 1000;
+    }
+
+    function groupLogsForRender(logs) {
+      const groups = [];
+      const groupsByKey = new Map();
+
+      logs.forEach((log) => {
+        const groupKey = isGroupedGameLogType(log.type) && log.groupId
+          ? `${log.type}:${log.groupId}`
+          : '';
+
+        if (groupKey) {
+          let group = groupsByKey.get(groupKey);
+
+          if (!group) {
+            group = { key: groupKey, legacyKey: getLegacyGameLogKey(log), type: log.type, logs: [] };
+            groupsByKey.set(groupKey, group);
+            groups.push(group);
+          }
+
+          if (!group.legacyKey) {
+            group.legacyKey = getLegacyGameLogKey(log);
+          }
+
+          group.logs.push(log);
+          return;
+        }
+
+        const legacyKey = getLegacyGameLogKey(log);
+        const previousGroup = groups[groups.length - 1];
+
+        if (
+          legacyKey &&
+          previousGroup?.legacyKey === legacyKey &&
+          areLogsNear(log, previousGroup.logs[previousGroup.logs.length - 1])
+        ) {
+          previousGroup.logs.push(log);
+          return;
+        }
+
+        groups.push({
+          key: log.id || `${log.type}-${log.createdAt}-${log.text}`,
+          legacyKey,
+          type: log.type,
+          logs: [log]
+        });
+      });
+
+      return groups;
+    }
+
+    function getLogsInDisplayOrder(group) {
+      return [...group.logs].sort((left, right) => {
+        const leftTime = Date.parse(left.createdAt || '');
+        const rightTime = Date.parse(right.createdAt || '');
+        return (Number.isFinite(leftTime) ? leftTime : 0) - (Number.isFinite(rightTime) ? rightTime : 0);
+      });
+    }
+
+    function getGroupedCopyText(group) {
+      return getLogsInDisplayOrder(group)
+        .map((log) => log.publicText || log.text)
+        .join('\n\n');
+    }
+
+    function parseLogSections(text) {
+      const matches = [...String(text || '').matchAll(/^\[([^\]\r\n]+)\]\s*$/gm)];
+
+      if (!matches.length) {
+        return null;
+      }
+
+      return {
+        title: text.slice(0, matches[0].index).trim(),
+        sections: matches.map((match, index) => {
+          const start = match.index + match[0].length;
+          const end = matches[index + 1]?.index ?? text.length;
+
+          return {
+            label: match[1],
+            text: text.slice(start, end).trim()
+          };
+        })
+      };
+    }
+
+    function isCommonLogSection(label) {
+      return label === '공통 공개';
+    }
+
+    function isPlayerCopySection(label) {
+      return /\s*copy용\s*$/.test(label);
+    }
+
+    function getSectionCopyText(parsed, section) {
+      if (isPlayerCopySection(section.label)) {
+        return section.text;
+      }
+
+      const common = parsed.sections.find((candidate) => isCommonLogSection(candidate.label));
+
+      if (section.label.startsWith('플레이어')) {
+        return section.text;
+      }
+
+      if (isCommonLogSection(section.label) || !common) {
+        return [
+          parsed.title,
+          `[${section.label}]\n${section.text}`
+        ].filter(Boolean).join('\n\n');
+      }
+
+      const parts = [];
+
+      if (parsed.title) {
+        parts.push(parsed.title);
+      }
+
+      parts.push(`[${common.label}]\n${common.text}`);
+      parts.push(`[${section.label}]\n${section.text}`);
+      return parts.join('\n\n');
+    }
+
+    function getSectionCopyButtonLabel(section) {
+      if (isCommonLogSection(section.label)) {
+        return '공통 공개 복사';
+      }
+
+      if (isPlayerCopySection(section.label)) {
+        return `${section.label.replace(/\s*copy용\s*$/, '')} 복사`;
+      }
+
+      if (section.label.startsWith('플레이어')) {
+        return `${section.label.replace(' 공개', '').replace(' 제출 정보', '')}용 복사`;
+      }
+
+      return `${section.label} 복사`;
+    }
+
+    function getSingleGameLogLabel(type) {
+      if (type === 'baccarat') {
+        return '바카라 게임';
+      }
+
+      if (type === 'blackjack') {
+        return '블랙잭 게임';
+      }
+
+      if (type === 'russianroulette') {
+        return '라운드 진행';
+      }
+
+      return '';
+    }
+
+    function appendSingleLogSection(container, labelText, text) {
+      const wrapper = document.createElement('div');
+      const block = document.createElement('div');
+      const header = document.createElement('div');
+      const label = document.createElement('strong');
+      const copyButton = document.createElement('button');
+      const pre = document.createElement('pre');
+
+      wrapper.className = 'log-public-sections';
+      block.className = 'log-public-section';
+      header.className = 'log-public-section-head';
+      label.textContent = labelText;
+      copyButton.type = 'button';
+      copyButton.textContent = '로그 복사';
+      copyButton.onclick = () => copyText(text);
+      pre.textContent = text;
+
+      header.append(label, copyButton);
+      block.append(header, pre);
+      wrapper.appendChild(block);
+      container.appendChild(wrapper);
+    }
+
+    function appendLogBody(container, text, type = '') {
+      const parsed = parseLogSections(text);
+
+      if (!parsed) {
+        const singleLogLabel = getSingleGameLogLabel(type);
+
+        if (singleLogLabel) {
+          appendSingleLogSection(container, singleLogLabel, text);
+          return;
+        }
+
+        const pre = document.createElement('pre');
+        pre.textContent = text;
+        container.appendChild(pre);
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'log-public-sections';
+
+      if (parsed.title) {
+        const title = document.createElement('div');
+        title.className = 'log-public-title';
+        title.textContent = parsed.title;
+        wrapper.appendChild(title);
+      }
+
+      parsed.sections.forEach((section) => {
+        const block = document.createElement('div');
+        const header = document.createElement('div');
+        const label = document.createElement('strong');
+        const pre = document.createElement('pre');
+
+        block.className = 'log-public-section';
+        header.className = 'log-public-section-head';
+        label.textContent = section.label;
+        pre.textContent = section.text;
+        header.appendChild(label);
+
+        if (section.label) {
+          const copyButton = document.createElement('button');
+          copyButton.type = 'button';
+          copyButton.textContent = getSectionCopyButtonLabel(section);
+          copyButton.onclick = () => copyText(getSectionCopyText(parsed, section));
+          header.appendChild(copyButton);
+        }
+
+        block.append(header, pre);
+        wrapper.appendChild(block);
+      });
+
+      container.appendChild(wrapper);
+    }
+
+    function renderLogs(nextLogs) {
+      mergeLogs(nextLogs);
+      logList.innerHTML = '';
+
+      if (!allLogs.length) {
+        latestPublicLogText = '';
+        logBox.value = '';
+        logCount.textContent = '0 logs';
+        logList.textContent = 'No logs yet.';
+        return;
+      }
+
+      const allGroups = groupLogsForRender(allLogs);
+      latestPublicLogText = allGroups.length ? getGroupedCopyText(allGroups[0]) : '';
+      logBox.value = latestPublicLogText;
+
+      const filteredLogs = getFilteredLogs();
+      const filteredGroups = groupLogsForRender(filteredLogs);
+      logCount.textContent = `${filteredGroups.length} / ${allLogs.length} logs`;
+
+      if (!filteredGroups.length) {
+        logList.textContent = 'No logs for this filter.';
+        return;
+      }
+
+      filteredGroups.forEach((group) => {
+        const item = document.createElement('div');
+        const meta = document.createElement('div');
+        const badge = document.createElement('span');
+        const title = document.createElement('strong');
+        const publicButton = document.createElement('button');
+        const latestLog = group.logs[0];
+        const publicText = getGroupedCopyText(group);
+
+        item.className = 'log-item';
+        meta.className = 'log-meta';
+        badge.className = 'badge';
+        badge.textContent = group.type;
+        title.textContent = `${new Date(latestLog.createdAt).toLocaleString()}${group.logs.length > 1 ? ` | ${group.logs.length} logs` : ''}`;
+        publicButton.type = 'button';
+        publicButton.textContent = group.logs.length > 1 ? 'Copy public game' : 'Copy public log';
+        publicButton.onclick = () => copyText(publicText);
+
+        meta.append(badge, title, publicButton);
+        item.appendChild(meta);
+
+        getLogsInDisplayOrder(group).forEach((log) => {
+          const logPublicText = log.publicText || log.text;
+
+          appendLogBody(item, log.text, log.type);
+
+          if (logPublicText !== log.text && parseLogSections(logPublicText)) {
+            appendLogBody(item, logPublicText, log.type);
+          }
+        });
+
+        logList.appendChild(item);
+      });
+    }
+
+    reloadPlayers();
+  </script>
+</body>
+</html>

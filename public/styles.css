@@ -1,0 +1,631 @@
+@import url('/theme.css');
+
+:root {
+  /* Spacing scale */
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Touch target minimum */
+  --touch-min: 44px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+.workspace { padding-bottom: 44px; }
+
+.page-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace > h1, .page-heading {
+  margin: 40px 0 22px;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-actions button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+  min-width: 0;
+  width: auto;
+  margin: 0;
+}
+
+.page-actions button:hover {
+  background: var(--surface-2);
+}
+
+h1 {
+  font-size: clamp(25px, 4vw, 34px);
+  line-height: 1.25;
+  letter-spacing: -.04em;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.toolbar select {
+  min-width: 160px;
+  max-width: 100%;
+}
+
+#logCount {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ── Inputs & Selects ── */
+input,
+select {
+  font-family: var(--sans);
+  font-size: 16px; /* prevents iOS zoom on focus */
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  min-width: 180px;
+  max-width: 100%;
+  min-height: var(--touch-min);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--border-strong);
+}
+
+input::placeholder {
+  color: var(--text-3);
+}
+
+/* ── Buttons ── */
+button {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--accent);
+  color: #ffffff;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  min-width: 140px;
+  max-width: 100%;
+  min-height: var(--touch-min);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  touch-action: manipulation;
+}
+
+button:hover:enabled {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+button:active:enabled {
+  background: #000;
+}
+
+button:disabled { cursor: default; opacity: .55; }
+
+button + button {
+  margin-left: 6px;
+}
+
+/* ── Table ── */
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 32px;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 560px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.table-wrapper table {
+  display: table;
+  border: none;
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+/* Fallback for tables without wrapper */
+table:not(.table-wrapper table) {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 32px;
+  overflow: hidden;
+}
+
+th {
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+  white-space: nowrap;
+}
+
+td {
+  padding: 11px 14px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.id-button {
+  min-width: unset;
+  min-height: unset;
+  width: auto;
+  padding: 4px 10px;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.id-button:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+tr:hover td {
+  background: var(--surface-2);
+}
+
+/* ── Textarea ── */
+textarea {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  width: 100%;
+  height: 160px;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 24px;
+  transition: border-color 0.15s;
+  line-height: 1.7;
+  -webkit-appearance: none;
+}
+
+textarea:focus {
+  border-color: var(--border-strong);
+}
+
+/* ── Section ── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-lg);
+  margin-bottom: 20px;
+  max-width: 560px;
+}
+
+.form-row {
+  margin-bottom: 14px;
+}
+
+.form-row label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.form-row input,
+.form-row select {
+  width: 100%;
+  min-width: unset;
+}
+
+.participant-row {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.section > button {
+  margin-top: 6px;
+}
+
+/* ── Hint ── */
+.hint {
+  margin-top: 18px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--mono);
+  line-height: 1.7;
+}
+
+/* ── Log List ── */
+.log-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 32px;
+}
+
+.log-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+
+.log-item:hover {
+  border-color: var(--border-strong);
+}
+
+.log-item pre,
+#blackjackState,
+#russianRouletteState,
+#pvpState,
+#formulaHighLowState {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  line-height: 1.7;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.log-public-sections {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.log-public-title {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.log-public-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  background: var(--surface-2);
+}
+
+.log-public-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.log-public-section-head strong {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.log-public-section-head button {
+  font-size: 10px;
+  padding: 5px 12px;
+  min-width: unset;
+  min-height: 32px;
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.log-public-section-head button:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.log-public-section pre {
+  margin-top: 8px;
+  background: var(--surface);
+}
+
+.pvp-turn-banner {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin: 10px 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.pvp-turn-banner.is-done {
+  color: var(--text-2);
+}
+
+.pvp-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pvp-actions button {
+  flex: 1 1 160px;
+  margin-left: 0;
+}
+
+.pvp-actions button + button {
+  margin-left: 0;
+  margin-top: 0;
+}
+
+.pvp-result-copies {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.pvp-result-copies[hidden] {
+  display: none;
+}
+
+.pvp-result-copies button {
+  flex: 1 1 160px;
+  margin-left: 0;
+}
+
+.log-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.log-meta strong {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+
+.log-meta button {
+  font-size: 10px;
+  padding: 5px 12px;
+  min-width: unset;
+  min-height: 32px;
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.log-meta button:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+/* ── Badge ── */
+.badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px 7px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 720px) {
+  .workspace > h1, .page-heading {
+    margin-top: 28px;
+  }
+
+  /* Inputs: keep 16px to prevent iOS zoom */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .section {
+    max-width: 100%;
+    padding: var(--space-md);
+  }
+
+  /* Buttons: full-width on mobile */
+  button {
+    min-width: unset;
+    width: 100%;
+    min-height: var(--touch-min);
+  }
+
+  button + button {
+    margin-left: 0;
+    margin-top: var(--space-xs);
+  }
+
+  .id-button {
+    width: auto;
+    min-height: unset;
+  }
+
+  .log-meta button {
+    width: 100%;
+  }
+
+  .log-public-section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .log-public-section-head button {
+    width: 100%;
+  }
+
+  /* Toolbar stacks vertically */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+
+  .toolbar select,
+  .toolbar input {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .toolbar button {
+    width: 100%;
+  }
+
+  /* Log meta stacks */
+  .log-meta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  /* Log item padding */
+  .log-item {
+    padding: var(--space-sm);
+  }
+
+  .table-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .table-wrapper table {
+    display: table;
+    width: 100%;
+    min-width: 640px;
+  }
+
+  /* Fallback for bare tables */
+  .workspace > table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  textarea {
+    height: 130px;
+    font-size: 14px; /* readable even on small screens */
+  }
+
+  /* Section button full width */
+  .section > button {
+    width: 100%;
+    margin-top: var(--space-xs);
+  }
+
+  .pvp-actions {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .pvp-actions button {
+    width: 100%;
+  }
+}
+
+/* ── Extra small (≤ 400px) ── */
+@media (max-width: 400px) {
+  td, th {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}

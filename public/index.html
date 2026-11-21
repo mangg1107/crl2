@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRL2 · BAND 게임 운영</title>
+  <link rel="stylesheet" href="/crl.css">
+  <script src="/access.js" defer></script>
+  <script src="/crl.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <nav aria-label="주 메뉴" class="frame site-nav">
+      <a href="/" class="site-brand">CRL2</a>
+      <div class="nav-links">
+        <a href="/" aria-current="page">BAND 운영</a>
+        <a href="/dashboard.html">대시보드</a>
+        <a href="/game.html">웹 게임</a>
+        <a href="/exchange.html">환전</a>
+      </div>
+    </nav>
+  </header>
+  <main class="frame">
+    <section class="hero">
+      <h1>BAND 게임 운영</h1>
+      <div class="worker" aria-label="봇 제어">
+        <span class="status" id="status" role="status">연결 확인 중</span>
+        <button class="primary" type="button" id="toggle" disabled>봇 시작</button>
+      </div>
+    </section>
+    <p class="notice" id="server-note" role="status" hidden></p>
+
+    <div class="layout">
+      <div class="main-column">
+        <section class="panel" aria-labelledby="players-title">
+          <div class="panel-title">
+            <h2 id="players-title">참가자 연결</h2>
+            <span id="player-count" class="count" hidden></span>
+          </div>
+          <form id="bind">
+            <label>BAND 표시 이름<input id="band-name" type="text" maxlength="80" autocomplete="off" required></label>
+            <label>RLCM 참가자<select id="player" required disabled><option value="">참가자 불러오는 중</option></select></label>
+            <label>정산 칩<select id="color">
+              <option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option>
+              <option value="yellow">Yellow</option><option value="white">White</option>
+            </select></label>
+            <button id="bind-button" class="primary" disabled>연결</button>
+          </form>
+          <p class="hint">밴드 안에서 고유한 표시 이름을 사용해 주세요.</p>
+          <p class="message" id="binding-note" role="status"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">BAND 표시 이름</th><th scope="col">RLCM 참가자</th><th scope="col">정산 칩</th><th scope="col">게임 상태</th><th scope="col"><span class="sr-only">관리</span></th></tr></thead>
+              <tbody id="bindings"><tr><td colspan="5">참가자 연결을 불러오는 중입니다.</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+        <section class="panel console" aria-labelledby="log-title">
+          <div class="panel-title"><h2 id="log-title">봇 실행 기록</h2></div>
+          <pre id="log" tabindex="0">아직 실행 기록이 없습니다.</pre>
+        </section>
+      </div>
+      <aside class="panel guide" aria-labelledby="guide-title">
+        <div class="panel-title"><h2 id="guide-title">대댓글 명령</h2></div>
+        <p class="hint">ALEA가 올린 원댓글 첫 줄로 종목을 구분합니다. 값 사이에 쉼표, 띄어쓰기, /를 쓸 수 있습니다.</p>
+        <dl>
+          <dt>참가자 확인</dt><dd><code>확인</code></dd>
+          <dt>룰렛</dt><dd><code>블루 10 / 레드</code><small>칩 색은 수량 앞에 적거나 생략합니다.</small></dd>
+          <dt>바카라</dt><dd><code>10, 플레이어</code><small>플레이어, 뱅커, 타이 중 선택</small></dd>
+          <dt>블랙잭</dt><dd><code>화이트 / 10</code></dd>
+          <dt>환전</dt><dd><code>레드, 5, 그린</code><small>환전할 칩 색, 수량, 받을 칩 색</small></dd>
+          <dt>바카라·블랙잭 진행</dt><dd><code>히트</code><code>스탠드</code></dd>
+          <dt>내 게임 확인</dt><dd><code>상태</code></dd>
+        </dl>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>
