@@ -9,6 +9,7 @@
     { "source": "/exchange", "destination": "/exchange.html", "permanent": false }
   ],
   "functions": {
-    "api/*.js": { "maxDuration": 60 }
+    "api/*.js": { "maxDuration": 60 },
+    "api/crl/internal/*.js": { "maxDuration": 60 }
   }
 }
