@@ -4,19 +4,18 @@ RLCM 웹 운영 화면과 BAND 사진 대댓글 게임을 Google Sheets의 참�
 
 ## Vercel 웹과 Windows 봇
 
-Vercel이 웹 화면과 정산 API를 운영합니다. Windows가 꺼져 있을 때도 사이트에서 참가자와 칩을 관리할 수 있으며, BAND 대댓글은 Windows에서 봇이 실행되는 동안 감시합니다. PostgreSQL은 Vercel 인스턴스 간 정산 순서를 제어합니다. 참가자, 잔액 및 게임 기록은 Sheets에 저장합니다.
+Vercel이 웹 화면과 정산 API를 운영합니다. Windows가 꺼져 있을 때도 사이트에서 참가자와 칩을 관리할 수 있으며, BAND 대댓글은 Windows에서 봇이 실행되는 동안 감시합니다. 참가자, 잔액 및 게임 기록은 Sheets에 저장합니다. PostgreSQL은 여러 Vercel 인스턴스 사이의 정산 요청 순서를 제어할 때 선택적으로 사용합니다.
 
 ### Vercel 설정
 
 1. GitHub 저장소를 Vercel에 연결합니다. 저장소 안에 `crl2`가 들어 있다면 **Root Directory**를 `crl2`로 지정합니다. `crl2` 자체를 저장소로 올렸다면 기본 디렉터리를 사용하고, Framework Preset은 **Express**를 선택합니다.
-2. Vercel 프로젝트에 PostgreSQL을 연결합니다. [Vercel Marketplace의 Postgres 연동](https://vercel.com/docs/postgres)을 사용할 수 있습니다. 데이터베이스의 풀링 연결 주소를 `DATABASE_URL`에 설정합니다. 테이블 생성이나 데이터 복사는 필요 없습니다.
-3. **Settings → Environment Variables**에서 Production에 아래 값을 설정하고 배포합니다. [Vercel 환경변수 문서](https://vercel.com/docs/environment-variables)
+2. **Settings → Environment Variables**에서 Production에 아래 값을 설정하고 배포합니다. [Vercel 환경변수 문서](https://vercel.com/docs/environment-variables)
 
 | 변수 | 값 |
 | --- | --- |
 | `GOOGLE_SPREADSHEET_ID` | RLCM 시트 URL의 `/d/`와 `/edit` 사이 ID |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | 시트 편집 권한이 있는 서비스 계정 JSON 전체. 또는 `GOOGLE_CLIENT_EMAIL`과 `GOOGLE_PRIVATE_KEY` 설정 |
-| `DATABASE_URL` | PostgreSQL 풀링 연결 주소 |
+| `DATABASE_URL` | 선택 항목. PostgreSQL 풀링 연결 주소. 설정하지 않으면 각 Vercel 인스턴스 안에서 요청을 순서대로 처리합니다. 여러 인스턴스의 동시 정산까지 조정하려면 설정하세요. |
 | `CRL_WORKER_TOKEN` | Windows 봇과 Vercel이 공유하는 토큰 |
 
 웹 운영 화면과 API는 로그인 없이 공개됩니다. 공개 운영 화면을 사용하려면 Vercel Production Deployment Protection도 꺼야 합니다. 봇 토큰은 Windows 봇의 내부 API 요청에만 사용합니다.
