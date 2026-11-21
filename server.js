@@ -153,4 +153,6 @@ if (require.main === module) {
   process.once('SIGTERM', shutdown);
 }
 
-module.exports = { createServer };
+module.exports = process.env.VERCEL
+  ? require('./lib/hosted-api').createHostedApi()
+  : { createServer };
