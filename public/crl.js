@@ -68,11 +68,10 @@ function tableRow(values) {
 
 function showBindings(bindings) {
   const rows = bindings.map(binding => {
-    const color = binding.color[0].toUpperCase() + binding.color.slice(1);
     const activeGame = binding.activeGame === 'baccarat' ? '바카라' : '블랙잭';
     const row = tableRow([binding.bandName, names.get(binding.playerId) || `#${binding.playerId}`,
-      color, binding.playing ? `${activeGame} 진행 중` : binding.verified ? '확인 완료' : '확인 대기']);
-    row.cells[3].toggleAttribute('data-playing', binding.playing);
+      binding.playing ? `${activeGame} 진행 중` : binding.verified ? '확인 완료' : '확인 대기']);
+    row.cells[2].toggleAttribute('data-playing', binding.playing);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'quiet';
@@ -85,7 +84,7 @@ function showBindings(bindings) {
   });
   if (!rows.length) {
     const empty = tableRow(['연결된 참가자가 없습니다.']);
-    empty.cells[0].colSpan = 5;
+    empty.cells[0].colSpan = 4;
     rows.push(empty);
   }
   $('bindings').replaceChildren(...rows);
@@ -101,7 +100,7 @@ async function refreshBindings() {
   } catch (error) {
     if ($('player-count').hidden) {
       const row = tableRow(['참가자 연결을 불러오지 못했습니다.']);
-      row.cells[0].colSpan = 5;
+      row.cells[0].colSpan = 4;
       $('bindings').replaceChildren(row);
     }
     note('binding-note', error.message, true);
@@ -145,7 +144,7 @@ async function changeBinding(method, data) {
 
 $('bind').addEventListener('submit', event => {
   event.preventDefault();
-  changeBinding('POST', { bandName: $('band-name').value, playerId: $('player').value, color: $('color').value });
+  changeBinding('POST', { bandName: $('band-name').value, playerId: $('player').value });
 });
 
 $('toggle').addEventListener('click', async () => {

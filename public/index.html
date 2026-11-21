@@ -40,18 +40,14 @@
           <form id="bind">
             <label>BAND 표시 이름<input id="band-name" type="text" maxlength="80" autocomplete="off" required></label>
             <label>RLCM 참가자<select id="player" required disabled><option value="">참가자 불러오는 중</option></select></label>
-            <label>정산 칩<select id="color">
-              <option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option>
-              <option value="yellow">Yellow</option><option value="white">White</option>
-            </select></label>
             <button id="bind-button" class="primary" disabled>연결</button>
           </form>
           <p class="hint">밴드 안에서 고유한 표시 이름을 사용해 주세요.</p>
           <p class="message" id="binding-note" role="status"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th scope="col">BAND 표시 이름</th><th scope="col">RLCM 참가자</th><th scope="col">정산 칩</th><th scope="col">게임 상태</th><th scope="col"><span class="sr-only">관리</span></th></tr></thead>
-              <tbody id="bindings"><tr><td colspan="5">참가자 연결을 불러오는 중입니다.</td></tr></tbody>
+              <thead><tr><th scope="col">BAND 표시 이름</th><th scope="col">RLCM 참가자</th><th scope="col">게임 상태</th><th scope="col"><span class="sr-only">관리</span></th></tr></thead>
+              <tbody id="bindings"><tr><td colspan="4">참가자 연결을 불러오는 중입니다.</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -65,7 +61,7 @@
         <p class="hint">ALEA가 올린 원댓글 첫 줄로 종목을 구분합니다. 값 사이에 쉼표, 띄어쓰기, /를 쓸 수 있습니다.</p>
         <dl>
           <dt>참가자 확인</dt><dd><code>확인</code></dd>
-          <dt>룰렛</dt><dd><code>블루 10 / 레드</code><small>칩 색은 수량 앞에 적거나 생략합니다.</small></dd>
+          <dt>룰렛</dt><dd><code>블루 10 / 레드</code><small>칩 색은 수량 앞에 적습니다. 생략하면 Red 칩을 씁니다.</small></dd>
           <dt>바카라</dt><dd><code>10, 플레이어</code><small>플레이어, 뱅커, 타이 중 선택</small></dd>
           <dt>블랙잭</dt><dd><code>화이트 / 10</code></dd>
           <dt>환전</dt><dd><code>레드, 5, 그린</code><small>환전할 칩 색, 수량, 받을 칩 색</small></dd>
