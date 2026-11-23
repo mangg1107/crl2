@@ -6,7 +6,7 @@ import logging
 import re
 import uuid
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urlsplit, urlunsplit
 
 from playwright.sync_api import Error as PlaywrightError
@@ -300,13 +300,16 @@ class BandBrowser:
                 raise BandError("댓글 목록을 한 번에 읽지 못했습니다. 다음 조회에서 다시 시도합니다.")
             indexes = []
             invalid_times = 0
+            ignore_through = datetime.now() - timedelta(minutes=5)
+            if self.ignore_comments_through is not None:
+                ignore_through = max(ignore_through, datetime.fromisoformat(self.ignore_comments_through))
             for index, timestamp in enumerate(times):
                 try:
                     created = comment_time(timestamp or "")
                 except BandError:
                     invalid_times += 1
                     continue
-                if self.ignore_comments_through is None or created > self.ignore_comments_through:
+                if datetime.fromisoformat(created) > ignore_through:
                     indexes.append(index)
 
             snapshot = [all_snapshot[index] for index in indexes]

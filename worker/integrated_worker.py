@@ -318,6 +318,7 @@ def main():
         except OSError:
             raise ValueError("이미 실행 중인 CRL2 봇이 있습니다.") from None
         state = load_state(path)
+        started_at = datetime.now().isoformat(timespec="seconds")
         with sync_playwright() as playwright:
             context = None
             try:
@@ -336,7 +337,7 @@ def main():
                                 context.pages[0] if context.pages else context.new_page(), url,
                             )
                             browser.processed = set(state["processed"])
-                            browser.ignore_comments_through = state["cutoff"]
+                            browser.ignore_comments_through = started_at
                             ready = False
                             last_scan_summary = None
                             diagnostics.clear()
