@@ -253,9 +253,9 @@ def process_targets(browser, targets, path, state, stopped, diagnostics):
             continue
         try:
             command = parse_thread_command(target, allow_short=target["created_at"] > state["short_cutoff"])
-        except ValueError as error:
+        except ValueError:
             command = None
-            body = f"입력 오류: {error}"
+            body = "입력 오류"
             keys = (key,)
         else:
             if command is None:
